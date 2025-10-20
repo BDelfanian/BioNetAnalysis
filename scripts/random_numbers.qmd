@@ -1,0 +1,279 @@
+---
+title: "Playing with Random Numbers"
+author: "Based on script by Alexander Skupin"
+date: "2025-10-21"
+format: html
+---
+
+## Introduction
+
+This Quarto document explores pseudo-random number generation (PRNG) and related distributions in R, relevant for simulations in bioinformatics such as modeling biological variability or Monte Carlo methods. We generate sequences, analyze properties like mean, variance, and entropy, and compare distributions using built-in R functions.
+
+## Pseudo-Random Number Generation (PRNG)
+
+PRNG uses a deterministic algorithm to produce sequences that mimic randomness. Here, a linear congruential generator is implemented with parameters: starting point (xs), multiplier (mul), and drift (dri).
+
+```{r}
+nn <- 4000  # number of sequence
+
+# starting point
+xs <- 1/123  # initial seed value
+
+# multiplier 
+mul <- 2.132  # scaling factor
+
+# drift 
+dri <- 0.212134  # additive constant
+
+# vector for random numbers and initiation 
+rannum <- rep(0, nn)
+rannum[1] <- xs
+
+# loop to generate RN
+for (i in 2:nn) {
+  rannum[i] <- (mul * rannum[i-1] + dri) %% 1
+}
+```
+
+## Visualizing the Generated Numbers
+
+Plot the sequence to inspect randomness visually. A uniform scatter suggests good randomness.
+
+```{r}
+plot(rannum)
+```
+
+Plot consecutive pairs to check for dependencies or patterns (e.g., correlations).
+
+```{r}
+plot(rannum[1:(nn-1)], rannum[2:nn])  # plot dependencies
+```
+
+## Histogram Analysis
+
+Histograms reveal the distribution. For uniform PRNG, it should be flat across [0,1).
+
+```{r}
+hist(rannum, breaks = 60)  # histogram
+```
+
+Detailed histogram for further properties.
+
+```{r}
+disr <- hist(rannum, breaks = 250)  # properties of histogram
+```
+
+## Statistical Properties
+
+Check mean (expected ~0.5 for uniform [0,1)) and variance (expected ~1/12).
+
+```{r}
+mean(rannum)  # average (to be 0.5 - see lecture)
+sd(rannum)^2  # variance (to be 1/12 - see lecture)
+```
+
+## Entropy Calculation
+
+Entropy measures information or uncertainty. For discrete bins, compute Shannon entropy.
+
+```{r}
+# calculate entropy and average
+ent <- 0
+danv <- 0
+for (i in 1:length(disr$counts)) {
+  ptemp <- disr$counts[i] / nn
+  ent <- ent - ptemp * log2(ptemp)
+  danv <- danv + ptemp * disr$mids[i]  # the mids are the x
+}
+
+print(ent)  # depends on binning
+print(danv)
+```
+
+Note: For uniform distribution, analytical entropy is log(b-a) = 0, but binning affects computation.
+
+## Differential Entropy
+
+For continuous distributions, adjust for bin width in entropy calculation.
+
+```{r}
+# calculate differential entropy
+nbis <- 500
+ddisr <- hist(rannum, breaks = nbis)  # properties of histogram
+dent <- 0
+for (i in 1:length(ddisr$counts)) {
+  ptemp <- ddisr$counts[i] / nn / nbis  # note: adjusted for bin width (1/nbis assuming range 1)
+  if (ptemp > 0) { dent <- dent - ptemp * log2(ptemp) }
+}
+
+print(dent)  # depends on binning
+```
+
+## Exponential Distribution via Inverse Sampling
+
+Transform uniform to exponential using inverse CDF: -λ log(u), where u ~ Uniform[0,1).
+
+```{r}
+lambda <- 1  # rate parameter
+expran <- -lambda * log(rannum)  # inverse function of exponential
+expden <- hist(expran, breaks = 500, freq = FALSE)
+```
+
+Check normalization and statistics.
+
+```{r}
+sum(expden$counts) / nn  # check if normalized
+sum(expden$counts * expden$mids) / nn  # average by distribution
+mean(expran)  # average of numbers
+sd(expran)  # standard deviation
+```
+
+## Uniform Random Numbers with R's runif
+
+R's built-in uniform generator for reproducibility and efficiency.
+
+```{r}
+runif(10)  # generate 10 uniform numbers
+```
+
+Plot sequence.
+
+```{r}
+plot(runif(1000))
+```
+
+Mean of large sample.
+
+```{r}
+mean(runif(100000))
+```
+
+Dependencies and histogram.
+
+```{r}
+rn <- runif(1000)
+plot(rn[1:999], rn[2:1000])
+rnhist <- hist(rn, breaks = 30)
+```
+
+Normalized histogram and density.
+
+```{r}
+sum(rnhist$counts / 1000)  # check if normalized
+barplot(rnhist$counts / 1000)  # plot normalized histogram
+plot(density(rn))
+```
+
+Effect of binning.
+
+```{r}
+rnhist <- hist(rn, breaks = 100)
+rnhist <- hist(rn, breaks = 30)
+```
+
+## Scaled Uniform and Sum of Uniforms
+
+Scale uniform and sum two for triangular distribution (like sum of dice).
+
+```{r}
+rn2 <- 2 * runif(1000)
+plot(rn[1:100], ylim = c(0, 2))
+points(rn2, col = "red")
+```
+
+Densities.
+
+```{r}
+plot(density(rn), xlim = c(0, 3))
+lines(density(rn2), col = "red")
+```
+
+Sum.
+
+```{r}
+rnsum <- rn + rn2
+hist(rnsum)
+plot(density(rnsum), ylim = c(0, 2))
+```
+
+Compare densities.
+
+```{r}
+plot(density(rn), ylim = c(0, 2), xlim = c(0, 4))
+lines(density(rn2), col = "red")
+lines(density(rnsum), col = "blue")
+```
+
+## Exponential with runif
+
+Direct generation.
+
+```{r}
+hist(-log(runif(100000)))
+plot(density(-log(runif(1000000))))
+```
+
+As vector.
+
+```{r}
+rne <- -log(runif(1000))
+rnehist <- hist(rne)
+sum(rnehist$counts / 1000)  # check if normalized
+barplot(rnehist$counts / 1000)  # plot normalized histogram
+```
+
+## Gaussian Random Numbers with rnorm
+
+Normal distribution, common in bioinformatics for noise or measurements.
+
+```{r}
+rng <- rnorm(10000, mean = 10, sd = 2)  # with mean 10 and sd 2
+plot(rng[1:1000])
+rnghist <- hist(rng)
+sum(rnghist$counts / 10000)  # check if normalized
+barplot(rnghist$counts / 10000)  # plot normalized histogram
+```
+
+## Significance Tests
+
+Compare distributions using non-parametric (Wilcoxon) and parametric (t-test) tests.
+
+```{r}
+wilcox.test(rng, rn)
+t.test(rng, rne)  # assumes normality
+```
+
+Histograms for visual comparison.
+
+```{r}
+hist(rn)
+hist(rng)
+hist(rne)
+```
+
+## Reproducibility with set.seed
+
+Set seed for identical results across runs.
+
+```{r}
+set.seed(2)
+rng2 <- rnorm(1000, mean = 9.5, sd = 2)
+plot(rng2[1:100])
+points(rng, col = "red")
+```
+
+Densities.
+
+```{r}
+plot(density(rng))
+lines(density(rng2), col = "red")
+```
+
+Tests with full and subsamples.
+
+```{r}
+wilcox.test(rng, rng2)
+wilcox.test(rng[1:120], rng2[1:120])  # significance depends on sample size
+t.test(rng, rng2)
+t.test(rng[1:120], rng2[1:120])
+```
