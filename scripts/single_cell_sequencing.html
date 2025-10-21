@@ -1,0 +1,2507 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.23">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Dimitrios Kyriakis and Alexander Skupin">
+<meta name="dcterms.date" content="2025-10-21">
+
+<title>Single-Cell RNA-Seq Analysis</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="single_cell_sequencing_files/libs/clipboard/clipboard.min.js"></script>
+<script src="single_cell_sequencing_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="single_cell_sequencing_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="single_cell_sequencing_files/libs/quarto-html/popper.min.js"></script>
+<script src="single_cell_sequencing_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="single_cell_sequencing_files/libs/quarto-html/anchor.min.js"></script>
+<link href="single_cell_sequencing_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="single_cell_sequencing_files/libs/quarto-html/quarto-syntax-highlighting-226bd0f977fa82dfae4534cac220d79a.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="single_cell_sequencing_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="single_cell_sequencing_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="single_cell_sequencing_files/libs/bootstrap/bootstrap-4d5cdba1e59023d104418e560b599aaf.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of Contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a></li>
+  <li><a href="#loading-libraries-and-data" id="toc-loading-libraries-and-data" class="nav-link" data-scroll-target="#loading-libraries-and-data"><span class="header-section-number">2</span> Loading Libraries and Data</a></li>
+  <li><a href="#initial-data-exploration" id="toc-initial-data-exploration" class="nav-link" data-scroll-target="#initial-data-exploration"><span class="header-section-number">3</span> Initial Data Exploration</a></li>
+  <li><a href="#creating-seurat-and-singlecellexperiment-objects" id="toc-creating-seurat-and-singlecellexperiment-objects" class="nav-link" data-scroll-target="#creating-seurat-and-singlecellexperiment-objects"><span class="header-section-number">4</span> Creating Seurat and SingleCellExperiment Objects</a></li>
+  <li><a href="#quality-control-qc" id="toc-quality-control-qc" class="nav-link" data-scroll-target="#quality-control-qc"><span class="header-section-number">5</span> Quality Control (QC)</a></li>
+  <li><a href="#data-normalization" id="toc-data-normalization" class="nav-link" data-scroll-target="#data-normalization"><span class="header-section-number">6</span> Data Normalization</a></li>
+  <li><a href="#feature-selection" id="toc-feature-selection" class="nav-link" data-scroll-target="#feature-selection"><span class="header-section-number">7</span> Feature Selection</a></li>
+  <li><a href="#dimensionality-reduction" id="toc-dimensionality-reduction" class="nav-link" data-scroll-target="#dimensionality-reduction"><span class="header-section-number">8</span> Dimensionality Reduction</a></li>
+  <li><a href="#cell-cycle-scoring-and-regression" id="toc-cell-cycle-scoring-and-regression" class="nav-link" data-scroll-target="#cell-cycle-scoring-and-regression"><span class="header-section-number">9</span> Cell Cycle Scoring and Regression</a></li>
+  <li><a href="#clustering" id="toc-clustering" class="nav-link" data-scroll-target="#clustering"><span class="header-section-number">10</span> Clustering</a></li>
+  <li><a href="#non-linear-dimensionality-reduction" id="toc-non-linear-dimensionality-reduction" class="nav-link" data-scroll-target="#non-linear-dimensionality-reduction"><span class="header-section-number">11</span> Non-Linear Dimensionality Reduction</a></li>
+  <li><a href="#differential-expression-analysis" id="toc-differential-expression-analysis" class="nav-link" data-scroll-target="#differential-expression-analysis"><span class="header-section-number">12</span> Differential Expression Analysis</a></li>
+  <li><a href="#cell-type-assignment" id="toc-cell-type-assignment" class="nav-link" data-scroll-target="#cell-type-assignment"><span class="header-section-number">13</span> Cell Type Assignment</a></li>
+  <li><a href="#gene-gene-and-cell-cell-correlation" id="toc-gene-gene-and-cell-cell-correlation" class="nav-link" data-scroll-target="#gene-gene-and-cell-cell-correlation"><span class="header-section-number">14</span> Gene-Gene and Cell-Cell Correlation</a></li>
+  <li><a href="#resources" id="toc-resources" class="nav-link" data-scroll-target="#resources"><span class="header-section-number">15</span> Resources</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Single-Cell RNA-Seq Analysis</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Dimitrios Kyriakis and Alexander Skupin </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">October 21, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level2" data-number="1">
+<h2 data-number="1" class="anchored" data-anchor-id="introduction"><span class="header-section-number">1</span> Introduction</h2>
+<p>This Quarto document demonstrates single-cell RNA-seq analysis using R packages <code>SingleCellExperiment</code>, <code>Seurat</code>, and <code>scater</code>. These tools are essential in bioinformatics for quality control (QC), normalization, dimensionality reduction, and clustering of single-cell transcriptomic data. We use the PBMC3k dataset to explore these methods.</p>
+</section>
+<section id="loading-libraries-and-data" class="level2" data-number="2">
+<h2 data-number="2" class="anchored" data-anchor-id="loading-libraries-and-data"><span class="header-section-number">2</span> Loading Libraries and Data</h2>
+<p>Load required libraries and the PBMC3k dataset from 10X Genomics. Ensure the data is unzipped and placed in the correct directory.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset environment</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list=</span><span class="fu">ls</span>())</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(SingleCellExperiment)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: SummarizedExperiment</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: MatrixGenerics</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: matrixStats</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'MatrixGenerics'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:matrixStats':
+
+    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    colWeightedMeans, colWeightedMedians, colWeightedSds,
+    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    rowWeightedSds, rowWeightedVars</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: GenomicRanges</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: stats4</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: BiocGenerics</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: generics</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'generics'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    as.difftime, as.factor, as.ordered, intersect, is.element, setdiff,
+    setequal, union</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'BiocGenerics'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    IQR, mad, sd, var, xtabs</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, is.unsorted, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rownames, sapply, saveRDS, table, tapply, unique,
+    unsplit, which.max, which.min</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: S4Vectors</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'S4Vectors'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:utils':
+
+    findMatches</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    expand.grid, I, unname</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: IRanges</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'IRanges'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:grDevices':
+
+    windows</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: GenomeInfoDb</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: Biobase</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'Biobase'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:MatrixGenerics':
+
+    rowMedians</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:matrixStats':
+
+    anyMissing, rowMedians</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'dplyr'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:Biobase':
+
+    combine</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:GenomicRanges':
+
+    intersect, setdiff, union</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:GenomeInfoDb':
+
+    intersect</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:IRanges':
+
+    collapse, desc, intersect, setdiff, slice, union</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:S4Vectors':
+
+    first, intersect, rename, setdiff, setequal, union</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:BiocGenerics':
+
+    combine, intersect, setdiff, setequal, union</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:generics':
+
+    explain</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:matrixStats':
+
+    count</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    filter, lag</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Seurat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: SeuratObject</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: sp</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'sp'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:IRanges':
+
+    %over%</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>'SeuratObject' was built under R 4.5.0 but the current version is
+4.5.1; it is recomended that you reinstall 'SeuratObject' as the ABI
+for R may have changed</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'SeuratObject'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:SummarizedExperiment':
+
+    Assays</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:GenomicRanges':
+
+    intersect</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:GenomeInfoDb':
+
+    intersect</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:IRanges':
+
+    intersect</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:S4Vectors':
+
+    intersect</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:BiocGenerics':
+
+    intersect</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, t</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'Seurat'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:SummarizedExperiment':
+
+    Assays</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Download and unzip PBMC dataset from URL</span></span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>url <span class="ot">&lt;-</span> <span class="st">"https://s3-us-west-2.amazonaws.com/10x.files/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz"</span></span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>temp_file <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".tar.gz"</span>)</span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a><span class="fu">download.file</span>(url, temp_file, <span class="at">mode =</span> <span class="st">"wb"</span>)</span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a>temp_dir <span class="ot">&lt;-</span> <span class="fu">tempdir</span>()</span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a><span class="fu">untar</span>(temp_file, <span class="at">exdir =</span> temp_dir)</span>
+<span id="cb57-9"><a href="#cb57-9" aria-hidden="true" tabindex="-1"></a>pbmc.data <span class="ot">&lt;-</span> <span class="fu">Read10X</span>(<span class="at">data.dir =</span> <span class="fu">file.path</span>(temp_dir, <span class="st">"filtered_gene_bc_matrices/hg19"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="initial-data-exploration" class="level2" data-number="3">
+<h2 data-number="3" class="anchored" data-anchor-id="initial-data-exploration"><span class="header-section-number">3</span> Initial Data Exploration</h2>
+<p>Examine the dataset dimensions and gene expression for specific genes in the first 30 cells.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(pbmc.data)  <span class="co"># dimensions of data frame</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 32738  2700</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pbmc.data<span class="sc">@</span>Dimnames[[<span class="dv">1</span>]])  <span class="co"># gene names</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "MIR1302-10"   "FAM138A"      "OR4F5"        "RP11-34P13.7" "RP11-34P13.8"
+[6] "AL627309.1"  </code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pbmc.data<span class="sc">@</span>Dimnames[[<span class="dv">2</span>]])  <span class="co"># barcode names</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "AAACATACAACCAC-1" "AAACATTGAGCTAC-1" "AAACATTGATCAGC-1" "AAACCGTGCTTCCG-1"
+[5] "AAACCGTGTATGCG-1" "AAACGCACTGGTAC-1"</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a>pbmc.data[<span class="fu">c</span>(<span class="st">"CD3D"</span>, <span class="st">"TCL1A"</span>, <span class="st">"MS4A1"</span>), <span class="dv">1</span><span class="sc">:</span><span class="dv">30</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>3 x 30 sparse Matrix of class "dgCMatrix"</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>  [[ suppressing 30 column names 'AAACATACAACCAC-1', 'AAACATTGAGCTAC-1', 'AAACATTGATCAGC-1' ... ]]</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                                                   
+CD3D  4 . 10 . . 1 2 3 1 . . 2 7 1 . . 1 3 . 2  3 . . . . . 3 4 1 5
+TCL1A . .  . . . . . . 1 . . . . . . . . . . .  . 1 . . . . . . . .
+MS4A1 . 6  . . . . . . 1 1 1 . . . . . . . . . 36 1 2 . . 2 . . . .</code></pre>
+</div>
+</div>
+<p>Visualize gene expression distributions with histograms.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(pbmc.data[<span class="st">"CD3D"</span>,], <span class="at">breaks =</span> <span class="dv">50</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(pbmc.data[<span class="dv">122</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">2230</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-3-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="creating-seurat-and-singlecellexperiment-objects" class="level2" data-number="4">
+<h2 data-number="4" class="anchored" data-anchor-id="creating-seurat-and-singlecellexperiment-objects"><span class="header-section-number">4</span> Creating Seurat and SingleCellExperiment Objects</h2>
+<p>Initialize a Seurat object for analysis, filtering genes expressed in at least 3 cells and cells with at least 200 features.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> pbmc.data, <span class="at">project =</span> <span class="st">"pbmc3k"</span>, <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">200</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Feature names cannot have underscores ('_'), replacing with dashes
+('-')</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>pbmc.sce <span class="ot">&lt;-</span> <span class="fu">as.SingleCellExperiment</span>(pbmc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: `PackageCheck()` was deprecated in SeuratObject 5.0.0.
+ℹ Please use `rlang::check_installed()` instead.
+ℹ The deprecated feature was likely used in the Seurat package.
+  Please report the issue at &lt;https://github.com/satijalab/seurat/issues&gt;.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The `slot` argument of `GetAssayData()` is deprecated as of SeuratObject 5.0.0.
+ℹ Please use the `layer` argument instead.
+ℹ The deprecated feature was likely used in the Seurat package.
+  Please report the issue at &lt;https://github.com/satijalab/seurat/issues&gt;.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Layer 'data' is empty</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Layer 'scale.data' is empty</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb77"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" aria-hidden="true" tabindex="-1"></a>pbmc</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>An object of class Seurat 
+13714 features across 2700 samples within 1 assay 
+Active assay: RNA (13714 features, 0 variable features)
+ 1 layer present: counts</code></pre>
+</div>
+</div>
+</section>
+<section id="quality-control-qc" class="level2" data-number="5">
+<h2 data-number="5" class="anchored" data-anchor-id="quality-control-qc"><span class="header-section-number">5</span> Quality Control (QC)</h2>
+<p>Calculate mitochondrial gene percentage for QC, as high mitochondrial content may indicate stressed or damaged cells.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb79"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" aria-hidden="true" tabindex="-1"></a>pbmc[[<span class="st">"percent.mt"</span>]] <span class="ot">&lt;-</span> <span class="fu">PercentageFeatureSet</span>(pbmc, <span class="at">pattern =</span> <span class="st">"^MT-"</span>)</span>
+<span id="cb79-2"><a href="#cb79-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pbmc<span class="sc">@</span>meta.data, <span class="dv">5</span>)  <span class="co"># show QC metrics</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>                 orig.ident nCount_RNA nFeature_RNA percent.mt
+AAACATACAACCAC-1     pbmc3k       2419          779  3.0177759
+AAACATTGAGCTAC-1     pbmc3k       4903         1352  3.7935958
+AAACATTGATCAGC-1     pbmc3k       3147         1129  0.8897363
+AAACCGTGCTTCCG-1     pbmc3k       2639          960  1.7430845
+AAACCGTGTATGCG-1     pbmc3k        980          521  1.2244898</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(pbmc<span class="sc">@</span>meta.data<span class="sc">$</span>percent.mt, <span class="at">breaks =</span> <span class="dv">50</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Visualize QC metrics with violin plots and scatter plots.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>vlnpl1 <span class="ot">&lt;-</span> <span class="fu">VlnPlot</span>(pbmc, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"nFeature_RNA"</span>, <span class="st">"nCount_RNA"</span>, <span class="st">"percent.mt"</span>), <span class="at">ncol =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Default search for "data" layer in "RNA" assay yielded no results;
+utilizing "counts" layer instead.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The `slot` argument of `FetchData()` is deprecated as of SeuratObject 5.0.0.
+ℹ Please use the `layer` argument instead.
+ℹ The deprecated feature was likely used in the Seurat package.
+  Please report the issue at &lt;https://github.com/satijalab/seurat/issues&gt;.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: `aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information.
+ℹ The deprecated feature was likely used in the Seurat package.
+  Please report the issue at &lt;https://github.com/satijalab/seurat/issues&gt;.</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a>plot1 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(pbmc, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"percent.mt"</span>)</span>
+<span id="cb86-2"><a href="#cb86-2" aria-hidden="true" tabindex="-1"></a>plot2 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(pbmc, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"nFeature_RNA"</span>)</span>
+<span id="cb86-3"><a href="#cb86-3" aria-hidden="true" tabindex="-1"></a>plot3 <span class="ot">&lt;-</span> plot1 <span class="sc">+</span> plot2</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Filter cells based on feature counts (200–2500) and mitochondrial percentage (&lt;5%).</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">subset</span>(pbmc, <span class="at">subset =</span> nFeature_RNA <span class="sc">&gt;</span> <span class="dv">200</span> <span class="sc">&amp;</span> nFeature_RNA <span class="sc">&lt;</span> <span class="dv">2500</span> <span class="sc">&amp;</span> percent.mt <span class="sc">&lt;</span> <span class="dv">5</span>)</span>
+<span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a>vlnpl2 <span class="ot">&lt;-</span> <span class="fu">VlnPlot</span>(pbmc, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"nFeature_RNA"</span>, <span class="st">"nCount_RNA"</span>, <span class="st">"percent.mt"</span>), <span class="at">ncol =</span> <span class="dv">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Default search for "data" layer in "RNA" assay yielded no results;
+utilizing "counts" layer instead.</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a>vlnpl1  <span class="co"># before QC</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb90"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb90-1"><a href="#cb90-1" aria-hidden="true" tabindex="-1"></a>vlnpl2  <span class="co"># after QC</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-7-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a>plot1 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(pbmc, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"percent.mt"</span>)</span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>plot2 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(pbmc, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"nFeature_RNA"</span>)</span>
+<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a>plot4 <span class="ot">&lt;-</span> plot1 <span class="sc">+</span> plot2</span>
+<span id="cb91-4"><a href="#cb91-4" aria-hidden="true" tabindex="-1"></a>plot3  <span class="co"># compare with before QC</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-7-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="data-normalization" class="level2" data-number="6">
+<h2 data-number="6" class="anchored" data-anchor-id="data-normalization"><span class="header-section-number">6</span> Data Normalization</h2>
+<p>Normalize data using LogNormalize to account for sequencing depth.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">NormalizeData</span>(pbmc, <span class="at">normalization.method =</span> <span class="st">"LogNormalize"</span>, <span class="at">scale.factor =</span> <span class="dv">10000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Normalizing layer: counts</code></pre>
+</div>
+</div>
+</section>
+<section id="feature-selection" class="level2" data-number="7">
+<h2 data-number="7" class="anchored" data-anchor-id="feature-selection"><span class="header-section-number">7</span> Feature Selection</h2>
+<p>Identify the 2000 most variable genes for downstream analysis.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">FindVariableFeatures</span>(pbmc, <span class="at">selection.method =</span> <span class="st">"vst"</span>, <span class="at">nfeatures =</span> <span class="dv">2000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Finding variable features for layer counts</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb96"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a>top10 <span class="ot">&lt;-</span> <span class="fu">head</span>(<span class="fu">VariableFeatures</span>(pbmc), <span class="dv">10</span>)</span>
+<span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a>plot5 <span class="ot">&lt;-</span> <span class="fu">VariableFeaturePlot</span>(pbmc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>Scale data for PCA, focusing on variable genes.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb97"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">ScaleData</span>(pbmc)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Centering and scaling data matrix</code></pre>
+</div>
+</div>
+<p>Access metadata, counts, and specific genes.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb99"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">Features</span>(pbmc))  <span class="co"># gene names</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "AL627309.1"    "AP006222.2"    "RP11-206L10.2" "RP11-206L10.9"
+[5] "LINC00115"     "NOC2L"        </code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb101"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">Cells</span>(pbmc))  <span class="co"># cell barcodes</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "AAACATACAACCAC-1" "AAACATTGAGCTAC-1" "AAACATTGATCAGC-1" "AAACCGTGCTTCCG-1"
+[5] "AAACCGTGTATGCG-1" "AAACGCACTGGTAC-1"</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb103"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb103-1"><a href="#cb103-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pbmc[[]])  <span class="co"># metadata</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>                 orig.ident nCount_RNA nFeature_RNA percent.mt
+AAACATACAACCAC-1     pbmc3k       2419          779  3.0177759
+AAACATTGAGCTAC-1     pbmc3k       4903         1352  3.7935958
+AAACATTGATCAGC-1     pbmc3k       3147         1129  0.8897363
+AAACCGTGCTTCCG-1     pbmc3k       2639          960  1.7430845
+AAACCGTGTATGCG-1     pbmc3k        980          521  1.2244898
+AAACGCACTGGTAC-1     pbmc3k       2163          781  1.6643551</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb105"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb105-1"><a href="#cb105-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">GetAssayData</span>(pbmc, <span class="at">assay =</span> <span class="st">"RNA"</span>, <span class="at">slot =</span> <span class="st">"counts"</span>))  <span class="co"># count matrix</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>6 x 2638 sparse Matrix of class "dgCMatrix"</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>  [[ suppressing 2638 column names 'AAACATACAACCAC-1', 'AAACATTGAGCTAC-1', 'AAACATTGATCAGC-1' ... ]]</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . 1 . . . . . . . . 1 . . . . . . . . . . . .
+                                                                              
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . .  . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . .  . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . .  . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . .  . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . .  . . . .
+NOC2L         1 . . . . . . . 1 1 . . . . . . . . . . . . 1 1 . 1 . . 12 . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . 1 . . . . . . . . . . . . . . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . 1 . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . 1 . . . . . . . . 1 . . . . . 1 . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         1 . . . . . . . . . . . 1 . 1 . . . . . . . . . . . . . . 2 . . 1
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . 1 . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         2 . . . . . . 1 . . . . . . . . . . . . . . 1 . . 1 . . . . . . 1
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . 1 . . . 1 . . . . . . 1 1 . . . . . . . 1 . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . 1 . . . . . . . . . . . . . . . . . . 1 . 1 . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . 1 . . . . . . 1 . . . 1 . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . 2 1 . . . . . . . . . . . . . . . 1 . . . . . . . . 1 1 .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . 1 1 . . . . . . . . . 1 . . 1 . . . . . 1 . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         1 . . . . . . . . . . . . . . . . . . . . . . . 1 . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . 1 . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . 1 . . . . . . . . . . . . . . . . 1 .
+                                                                               
+AL627309.1    . . . 1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . 1 . . . . . . . . . . . . . . . . .
+NOC2L         . . . . 2 . . . . . . . . . . . . . . . . . . . . . . 1 1 . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . 1 . . . . . . . . . . . . . . 1 . . 1 . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1 . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . 1 . . . . . . . 1 . 1 . . 1 . . . 1 . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . 1 . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . 1 . . . . . . . . . . . . . . 1 . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . 1 . . 1 . . . 1 . . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . 1 . 1 . . . . . . 1 . . . . 1 . . . . . . . . 1 1 1 . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . 1 . . . . . . . . 1 . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . 1 . 1 . . . . . . . . . . . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . 1 . . . . . . . . . . . . . . . 1 . . . . . . . 1 . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . 1 . . . 1 . . . . . 1 . . . 1 . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . 1 . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . 1 . 1 . 1 . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . 1 . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         1 . . . . 1 . . 1 . . . . . . . . . . . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . 1 . . . . . . . . . . . 1 1 . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . 1 1 . . . . . . . . . 1 . . . 1 . . . . . . . . . . . . 1 .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         1 . . . . . . . . . 1 . . . . . . . . 1 . . . . . 1 . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . 1 . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . 1 . . . . . . . . . . . . . . 1 . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . 1 . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1 . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . . . . 1 . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . 1 . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . 1 . . . . 1 . . . . . . . . . . . . . . 1 . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . 1 . . . . . . . . . . . . . . . . . . . 1 . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . 1 . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . 1 . . . . 1 2 . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . 1 . . . 1 . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . 1 1 . . . 1 . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . 1 . . . . . . . . . . . 1 . . 1 1 . . . 2 . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . 1 . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . 1 . . . . . . . . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . 2 . . . . . . . 1 . . . . . . 1 . . . . . . . . 1 . . 1 .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . 1 . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     1 . . . . . . . . . . . . . . . . . . . 1 . . . . . . . . . . . .
+NOC2L         . . . . 1 . . 1 . . . . . . . . . . 1 . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1
+NOC2L         . . 1 . . . . . . . . . . . . . . . . . . . 1 . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1 .
+NOC2L         1 . . . . . . 1 . . . 1 . . . . . . . 1 . . . . . . 2 . . . . 1 1
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . 1 . . . . . . 1 . . . . . . . . 1 . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         1 . . . . . . . . 1 . . . . . . . . . . . . . 1 . . . . . . 2 . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . 1 . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . . . 1 . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . 1 . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . 1 . . . . . . . . . . . . . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . 2 . 1 . . . 1 1 . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . 1 . . . 2 . 1 . . . 1 1 . . . . . . . . . . 1 1 . 2 . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         1 . . . . . . . . . . . . . . . . . . 1 . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . 1 . . . . . . . . . . . 2 . . . . . . . . . 1 . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . 1 . . . . . . . . . . . . . 1 . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . 1 . . 1 1 . . . . . . . . . . . . . . . . . . . 1
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . 1 . . . 1 . . . . . . . . . . . 1 1 . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . 1 . . . . . . . . . . . . . 1 . . . . 1 . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         1 . . . . . . . . . . . . . . . 1 . . . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . 1 . . 1 . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . 1 1 . . 1 . . . . . . . . . . . . . . . . 1 . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . 1 . . . . . . . . . . . . 1 . . 1 . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . 1 . . . . . 1 . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . . . 1 . . . 1 . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . 1 . . . 1 . . . . . . . . 1 . . . 1 1 . . . . . . . . 1 . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . 1 . 1 . 1 . . . . . . . . . . 1 1 .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . 1 . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . 2 . . . . . . . 1 . . . . . . . . . . . 1 . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . 1 . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         1 . . . . . . . 1 . . . . . . . . . . . . . 1 . . . 1 . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . 1 . . . . . . . . . . . . . . . . . . . 1 1 . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . 1 . . . . . . . . . . . . . 1 . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . 1 . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . 1 . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . 1 . . . 2 . . . . . . . . 1 . 1
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . 1 . . . . 1 . . . . . 1 . . . . . . . . . . . . 1
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . 1 . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . 1 . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . 1 . 1 1 . . . . 1 . . . . 1 . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . 1 . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . 1 . . . 2 . . . . . . . . . . . . 1 . . 1 . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . 1 . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . 1 . . . . . . 1 . . . . . 1 . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . 1 . . . . . . . . . . . . . . . . . 1 . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . 1 . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1 . . .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . . 1 . . . . . . . . . . . .
+NOC2L         . . . . . . . 1 . 1 . . . . . . 1 . . . . . 1 1 . 2 . 1 . . . 2 .
+                                                                               
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . 1 . . . . . . . . . . . . . 1 . . . . .
+NOC2L         . . . . . . . . . . . . . . . . . . . . 1 . . 1 . 1 . . . . 1 . .
+                                                                             
+AL627309.1    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+AP006222.2    . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.2 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+RP11-206L10.9 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+LINC00115     . . . . . . . . . . . . . . . . . . . 1 . . . . . . . . . . . .
+NOC2L         1 . . . . 1 . . . . . 1 . . . . . . . 1 . . . . . . . . . . . .</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb109"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb109-1"><a href="#cb109-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">FetchData</span>(pbmc, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"nFeature_RNA"</span>, <span class="st">"ISG15"</span>, <span class="st">"TNFRSF4"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>                 nFeature_RNA ISG15 TNFRSF4
+AAACATACAACCAC-1          779     0       0
+AAACATTGAGCTAC-1         1352     0       0
+AAACATTGATCAGC-1         1129     1       0
+AAACCGTGCTTCCG-1          960     9       0
+AAACCGTGTATGCG-1          521     0       0
+AAACGCACTGGTAC-1          781     1       0</code></pre>
+</div>
+</div>
+<p>Visualize gene expression.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb111"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb111-1"><a href="#cb111-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">as.data.frame</span>(<span class="fu">FetchData</span>(pbmc, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"FTL"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>))[,])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb112"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb112-1"><a href="#cb112-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">as.data.frame</span>(<span class="fu">FetchData</span>(pbmc, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"FTL"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>))[,],</span>
+<span id="cb112-2"><a href="#cb112-2" aria-hidden="true" tabindex="-1"></a>     <span class="fu">as.data.frame</span>(<span class="fu">FetchData</span>(pbmc, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"GAPDH"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>))[,])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-12-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb113"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb113-1"><a href="#cb113-1" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">as.data.frame</span>(<span class="fu">FetchData</span>(pbmc, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"FTL"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>      FTL     
+ Min.   :  0  
+ 1st Qu.:  4  
+ Median :  7  
+ Mean   : 28  
+ 3rd Qu.: 31  
+ Max.   :391  </code></pre>
+</div>
+</div>
+</section>
+<section id="dimensionality-reduction" class="level2" data-number="8">
+<h2 data-number="8" class="anchored" data-anchor-id="dimensionality-reduction"><span class="header-section-number">8</span> Dimensionality Reduction</h2>
+<p>Perform PCA on scaled data to reduce dimensionality.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb115"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb115-1"><a href="#cb115-1" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RunPCA</span>(pbmc, <span class="at">npcs =</span> <span class="dv">30</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb115-2"><a href="#cb115-2" aria-hidden="true" tabindex="-1"></a><span class="fu">ElbowPlot</span>(pbmc, <span class="at">ndims =</span> <span class="dv">30</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb116"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(pbmc[[<span class="st">"pca"</span>]], <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="at">nfeatures =</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>PC_ 1 
+Positive:  CST3, TYROBP, LST1, AIF1, FTL 
+Negative:  MALAT1, LTB, IL32, IL7R, CD2 
+PC_ 2 
+Positive:  CD79A, MS4A1, TCL1A, HLA-DQA1, HLA-DQB1 
+Negative:  NKG7, PRF1, CST7, GZMB, GZMA 
+PC_ 3 
+Positive:  HLA-DQA1, CD79A, CD79B, HLA-DQB1, HLA-DPB1 
+Negative:  PPBP, PF4, SDPR, SPARC, GNG11 
+PC_ 4 
+Positive:  VIM, IL7R, S100A6, IL32, S100A8 
+Negative:  HLA-DQA1, CD79B, CD79A, MS4A1, HLA-DQB1 
+PC_ 5 
+Positive:  LTB, IL7R, CKB, VIM, MS4A7 
+Negative:  GZMB, NKG7, S100A8, FGFBP2, GNLY </code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb118"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb118-1"><a href="#cb118-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-13-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb119"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb119-1"><a href="#cb119-1" aria-hidden="true" tabindex="-1"></a><span class="fu">VizDimLoadings</span>(pbmc, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, <span class="at">reduction =</span> <span class="st">"pca"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-13-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb120"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb120-1"><a href="#cb120-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DimHeatmap</span>(pbmc, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>, <span class="at">cells =</span> <span class="dv">500</span>, <span class="at">balanced =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-13-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Determine significant PCs using JackStraw.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb121"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb121-1"><a href="#cb121-1" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">JackStraw</span>(pbmc, <span class="at">num.replicate =</span> <span class="dv">50</span>)</span>
+<span id="cb121-2"><a href="#cb121-2" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">ScoreJackStraw</span>(pbmc, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>)</span>
+<span id="cb121-3"><a href="#cb121-3" aria-hidden="true" tabindex="-1"></a><span class="fu">JackStrawPlot</span>(pbmc, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 14804 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="cell-cycle-scoring-and-regression" class="level2" data-number="9">
+<h2 data-number="9" class="anchored" data-anchor-id="cell-cycle-scoring-and-regression"><span class="header-section-number">9</span> Cell Cycle Scoring and Regression</h2>
+<p>Assign cell cycle phases and regress out cell cycle effects.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb123"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb123-1"><a href="#cb123-1" aria-hidden="true" tabindex="-1"></a>s.genes <span class="ot">&lt;-</span> cc.genes<span class="sc">$</span>s.genes</span>
+<span id="cb123-2"><a href="#cb123-2" aria-hidden="true" tabindex="-1"></a>g2m.genes <span class="ot">&lt;-</span> cc.genes<span class="sc">$</span>g2m.genes</span>
+<span id="cb123-3"><a href="#cb123-3" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">CellCycleScoring</span>(pbmc, <span class="at">s.features =</span> s.genes, <span class="at">g2m.features =</span> g2m.genes, <span class="at">set.ident =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: DTL, UHRF1,
+MLF1IP, EXO1, CASP8AP2, BRIP1, E2F8, not searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: FAM64A, BUB1,
+HJURP, CDCA3, TTK, CDC25C, DLGAP5, CDCA2, ANLN, GAS2L3, not searching for
+symbol synonyms</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb126"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb126-1"><a href="#cb126-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">group.by =</span> <span class="st">"Phase"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb127"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb127-1"><a href="#cb127-1" aria-hidden="true" tabindex="-1"></a>pbmc<span class="sc">$</span>CC.Difference <span class="ot">&lt;-</span> pbmc<span class="sc">$</span>S.Score <span class="sc">-</span> pbmc<span class="sc">$</span>G2M.Score</span>
+<span id="cb127-2"><a href="#cb127-2" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">ScaleData</span>(pbmc, <span class="at">vars.to.regress =</span> <span class="st">"CC.Difference"</span>, <span class="at">features =</span> <span class="fu">rownames</span>(pbmc))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Regressing out CC.Difference</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Centering and scaling data matrix</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Different features in new layer data than already exists for
+scale.data</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb131"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb131-1"><a href="#cb131-1" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RunPCA</span>(pbmc, <span class="at">features =</span> <span class="fu">VariableFeatures</span>(pbmc), <span class="at">reduction.name =</span> <span class="st">"pca_reg_ccs"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>PC_ 1 
+Positive:  CST3, TYROBP, LST1, AIF1, FTL, LYZ, FTH1, FCN1, S100A9, FCER1G 
+       TYMP, CFD, LGALS1, LGALS2, CTSS, S100A8, SERPINA1, IFITM3, SPI1, PSAP 
+       CFP, IFI30, SAT1, S100A11, COTL1, NPC2, GRN, LGALS3, GSTP1, PYCARD 
+Negative:  MALAT1, LTB, IL32, IL7R, CD2, B2M, ACAP1, CD27, STK17A, CD247 
+       CTSW, AQP3, GIMAP5, CCL5, TRAF3IP3, SELL, MAL, ITM2A, GZMA, MYC 
+       CST7, LDLRAP1, GIMAP7, ETS1, BEX2, GZMK, RIC3, HOPX, ZAP70, TNFAIP8 
+PC_ 2 
+Positive:  CD79A, MS4A1, TCL1A, HLA-DQA1, HLA-DRA, HLA-DQB1, LINC00926, CD79B, HLA-DRB1, CD74 
+       HLA-DMA, HLA-DPB1, HLA-DQA2, HLA-DRB5, CD37, HLA-DPA1, HLA-DMB, FCRLA, HVCN1, LTB 
+       BLNK, P2RX5, IRF8, IGLL5, SWAP70, ARHGAP24, FCGR2B, SMIM14, PPP1R14A, C16orf74 
+Negative:  NKG7, CST7, PRF1, GZMA, GZMB, FGFBP2, CTSW, GNLY, B2M, SPON2 
+       GZMH, CCL4, FCGR3A, CCL5, CD247, XCL2, CLIC3, AKR1C3, SRGN, HOPX 
+       TTC38, APMAP, CTSC, S100A4, IGFBP7, ANXA1, IL32, ID2, XCL1, RHOC 
+PC_ 3 
+Positive:  HLA-DQA1, CD79B, CD79A, HLA-DQB1, HLA-DPA1, HLA-DPB1, CD74, MS4A1, HLA-DRB1, HLA-DRB5 
+       HLA-DRA, HLA-DQA2, TCL1A, LINC00926, HLA-DMB, CD37, HLA-DMA, HVCN1, FCRLA, IRF8 
+       PLAC8, MALAT1, BLNK, SMIM14, PLD4, IGLL5, P2RX5, LAT2, SWAP70, FCGR3A 
+Negative:  PPBP, SDPR, PF4, SPARC, GNG11, NRGN, GP9, RGS18, TUBB1, HIST1H2AC 
+       CLU, AP001189.4, ITGA2B, CD9, TMEM40, PTCRA, CA2, ACRBP, MMD, TREML1 
+       NGFRAP1, F13A1, SEPT5, RUFY1, TSC22D1, MPP1, CMTM5, MYL9, RP11-367G6.3, GP1BA 
+PC_ 4 
+Positive:  HLA-DQA1, CD79B, CD79A, MS4A1, HLA-DQB1, CD74, HLA-DPB1, HIST1H2AC, TCL1A, HLA-DRB1 
+       HLA-DPA1, HLA-DQA2, PF4, HLA-DRA, SDPR, LINC00926, PPBP, HLA-DRB5, GNG11, SPARC 
+       GP9, GZMB, CA2, AP001189.4, PTCRA, CD9, NRGN, RGS18, CLU, TUBB1 
+Negative:  VIM, IL7R, S100A6, S100A8, IL32, S100A4, GIMAP7, S100A9, S100A10, MAL 
+       AQP3, CD14, LGALS2, CD2, FYB, GIMAP4, ANXA1, FCN1, CD27, RBP7 
+       LYZ, MS4A6A, S100A11, S100A12, GIMAP5, FOLR3, TRABD2A, AIF1, IL8, TMSB4X 
+PC_ 5 
+Positive:  GZMB, NKG7, FGFBP2, S100A8, GNLY, CCL4, CST7, PRF1, GZMA, SPON2 
+       GZMH, S100A9, LGALS2, CCL3, CTSW, XCL2, CLIC3, S100A12, CCL5, CD14 
+       RBP7, MS4A6A, GSTP1, FOLR3, IGFBP7, TTC38, AKR1C3, TYROBP, XCL1, HOPX 
+Negative:  LTB, IL7R, CKB, VIM, MS4A7, AQP3, CYTIP, RP11-290F20.3, SIGLEC10, HMOX1 
+       LILRB2, MAL, CD27, PTGES3, ANXA5, CD2, CORO1B, HN1, FAM110A, TUBA1B 
+       GDI2, PPA1, ATP1A1, TRADD, ABRACL, CTD-2006K23.1, CCDC109B, WARS, IFITM2, FYB </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Key 'PC_' taken, using 'pcaregccs_' instead</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb134"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb134-1"><a href="#cb134-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca_reg_ccs"</span>) <span class="sc">|</span> <span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-15-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="clustering" class="level2" data-number="10">
+<h2 data-number="10" class="anchored" data-anchor-id="clustering"><span class="header-section-number">10</span> Clustering</h2>
+<p>Cluster cells using the Louvain algorithm on PCA results.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb135"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb135-1"><a href="#cb135-1" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">FindNeighbors</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca"</span>, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb135-2"><a href="#cb135-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">FindClusters</span>(<span class="at">resolution =</span> <span class="fl">0.5</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb135-3"><a href="#cb135-3" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">group.by =</span> <span class="st">"seurat_clusters"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="non-linear-dimensionality-reduction" class="level2" data-number="11">
+<h2 data-number="11" class="anchored" data-anchor-id="non-linear-dimensionality-reduction"><span class="header-section-number">11</span> Non-Linear Dimensionality Reduction</h2>
+<p>Run UMAP to visualize clusters, noting the stochastic nature of UMAP.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb136"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb136-1"><a href="#cb136-1" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RunUMAP</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca"</span>, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The default method for RunUMAP has changed from calling Python UMAP via reticulate to the R-native UWOT using the cosine metric
+To use Python UMAP via reticulate, set umap.method to 'umap-learn' and metric to 'correlation'
+This message will be shown once per session</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb138"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb138-1"><a href="#cb138-1" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">DimPlot</span>(pbmc, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">repel =</span> <span class="cn">TRUE</span>, <span class="at">reduction =</span> <span class="st">"pca"</span>)</span>
+<span id="cb138-2"><a href="#cb138-2" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">DimPlot</span>(pbmc, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">repel =</span> <span class="cn">TRUE</span>, <span class="at">reduction =</span> <span class="st">"umap"</span>)</span>
+<span id="cb138-3"><a href="#cb138-3" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RunUMAP</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca"</span>, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">seed.use =</span> <span class="dv">1234</span>)</span>
+<span id="cb138-4"><a href="#cb138-4" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> <span class="fu">DimPlot</span>(pbmc, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">repel =</span> <span class="cn">TRUE</span>, <span class="at">reduction =</span> <span class="st">"umap"</span>)</span>
+<span id="cb138-5"><a href="#cb138-5" aria-hidden="true" tabindex="-1"></a>p1 <span class="sc">|</span> p2 <span class="sc">|</span> p3</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="differential-expression-analysis" class="level2" data-number="12">
+<h2 data-number="12" class="anchored" data-anchor-id="differential-expression-analysis"><span class="header-section-number">12</span> Differential Expression Analysis</h2>
+<p>Identify markers for cluster 2 and all clusters.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb139"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb139-1"><a href="#cb139-1" aria-hidden="true" tabindex="-1"></a>cluster2.markers <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(pbmc, <span class="at">ident.1 =</span> <span class="dv">2</span>, <span class="at">min.pct =</span> <span class="fl">0.25</span>, <span class="at">min.diff.pct =</span> <span class="fl">0.4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>For a (much!) faster implementation of the Wilcoxon Rank Sum Test,
+(default method for FindMarkers) please install the presto package
+--------------------------------------------
+install.packages('devtools')
+devtools::install_github('immunogenomics/presto')
+--------------------------------------------
+After installation of presto, Seurat will automatically use the more 
+efficient implementation (no further action necessary).
+This message will be shown once per session</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb141"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb141-1"><a href="#cb141-1" aria-hidden="true" tabindex="-1"></a>cluster2.markers<span class="sc">$</span>Symbol <span class="ot">&lt;-</span> <span class="fu">rownames</span>(cluster2.markers)</span>
+<span id="cb141-2"><a href="#cb141-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cluster2.markers, <span class="at">n =</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>               p_val avg_log2FC pct.1 pct.2     p_val_adj Symbol
+S100A8  0.000000e+00   6.547695 0.977 0.125  0.000000e+00 S100A8
+LGALS2  0.000000e+00   5.515587 0.904 0.064  0.000000e+00 LGALS2
+S100A9  0.000000e+00   6.118050 0.996 0.219  0.000000e+00 S100A9
+FCN1   1.147923e-316   4.035096 0.953 0.154 1.574262e-312   FCN1
+CD14   3.658537e-295   5.891504 0.673 0.029 5.017318e-291   CD14</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb143"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb143-1"><a href="#cb143-1" aria-hidden="true" tabindex="-1"></a><span class="fu">VlnPlot</span>(pbmc, <span class="at">features =</span> cluster2.markers<span class="sc">$</span>Symbol[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb144"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb144-1"><a href="#cb144-1" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="ot">&lt;-</span> <span class="fu">FindAllMarkers</span>(pbmc, <span class="at">only.pos =</span> <span class="cn">TRUE</span>, <span class="at">min.pct =</span> <span class="fl">0.25</span>, <span class="at">logfc.threshold =</span> <span class="fl">0.25</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster 0</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster 1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster 2</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster 3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster 4</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster 5</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster 6</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster 7</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster 8</code></pre>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb154"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb154-1"><a href="#cb154-1" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="sc">%&gt;%</span></span>
+<span id="cb154-2"><a href="#cb154-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(cluster) <span class="sc">%&gt;%</span></span>
+<span id="cb154-3"><a href="#cb154-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(<span class="at">n =</span> <span class="dv">2</span>, <span class="at">order_by =</span> avg_log2FC)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 18 × 7
+# Groups:   cluster [9]
+       p_val avg_log2FC pct.1 pct.2 p_val_adj cluster gene         
+       &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;fct&gt;   &lt;chr&gt;        
+ 1 1.38e- 82       2.45 0.412 0.086 1.89e- 78 0       AQP3         
+ 2 1.01e- 50       2.25 0.262 0.052 1.38e- 46 0       CD40LG       
+ 3 6.03e- 87       2.39 0.49  0.123 8.27e- 83 1       CCR7         
+ 4 1.23e- 23       2.30 0.252 0.096 1.69e- 19 1       LDLRAP1      
+ 5 1.58e-142       7.32 0.306 0.004 2.17e-138 2       FOLR3        
+ 6 1.95e-124       6.77 0.282 0.006 2.67e-120 2       S100A12      
+ 7 3.03e-265       7.22 0.557 0.01  4.16e-261 3       LINC00926    
+ 8 1.75e-236       7.13 0.487 0.007 2.40e-232 3       VPREB3       
+ 9 2.05e-158       4.12 0.587 0.059 2.81e-154 4       GZMK         
+10 6.23e- 96       3.89 0.446 0.06  8.54e- 92 4       GZMH         
+11 2.46e-161       5.83 0.357 0.005 3.38e-157 5       CKB          
+12 2.13e-220       5.51 0.506 0.009 2.92e-216 5       CDKN1C       
+13 1.06e-115       6.17 0.293 0.007 1.45e-111 6       SH2D1B       
+14 3.02e-171       6.15 0.459 0.013 4.14e-167 6       AKR1C3       
+15 8.08e-257       8.03 0.875 0.01  1.11e-252 7       FCER1A       
+16 2.26e-103       6.62 0.281 0.002 3.10e- 99 7       CLIC2        
+17 0              14.3  0.571 0     0         8       LY6G6F       
+18 4.36e-206      13.8  0.357 0     5.98e-202 8       RP11-879F14.2</code></pre>
+</div>
+</div>
+<p>Visualize marker expression.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb156"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb156-1"><a href="#cb156-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(pbmc, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"MS4A1"</span>, <span class="st">"GNLY"</span>, <span class="st">"CD3E"</span>, <span class="st">"CD14"</span>, <span class="st">"FCER1A"</span>, <span class="st">"FCGR3A"</span>, <span class="st">"LYZ"</span>, <span class="st">"PPBP"</span>, <span class="st">"CD8A"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-19-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb157"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb157-1"><a href="#cb157-1" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="sc">%&gt;%</span></span>
+<span id="cb157-2"><a href="#cb157-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(cluster) <span class="sc">%&gt;%</span></span>
+<span id="cb157-3"><a href="#cb157-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">top_n</span>(<span class="at">n =</span> <span class="dv">10</span>, <span class="at">wt =</span> avg_log2FC) <span class="ot">-&gt;</span> top10</span>
+<span id="cb157-4"><a href="#cb157-4" aria-hidden="true" tabindex="-1"></a><span class="fu">DoHeatmap</span>(pbmc, <span class="at">features =</span> top10<span class="sc">$</span>gene) <span class="sc">+</span> <span class="fu">NoLegend</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-19-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="cell-type-assignment" class="level2" data-number="13">
+<h2 data-number="13" class="anchored" data-anchor-id="cell-type-assignment"><span class="header-section-number">13</span> Cell Type Assignment</h2>
+<p>Assign cell types based on known markers.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb158"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb158-1"><a href="#cb158-1" aria-hidden="true" tabindex="-1"></a>new.cluster.ids <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Naive CD4 T"</span>, <span class="st">"CD14+ Mono"</span>, <span class="st">"Memory CD4 T"</span>, <span class="st">"B"</span>, <span class="st">"CD8 T"</span>, <span class="st">"FCGR3A+ Mono"</span>,</span>
+<span id="cb158-2"><a href="#cb158-2" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"NK"</span>, <span class="st">"DC"</span>, <span class="st">"Platelet"</span>)</span>
+<span id="cb158-3"><a href="#cb158-3" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(new.cluster.ids) <span class="ot">&lt;-</span> <span class="fu">levels</span>(pbmc)</span>
+<span id="cb158-4"><a href="#cb158-4" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RenameIdents</span>(pbmc, new.cluster.ids)</span>
+<span id="cb158-5"><a href="#cb158-5" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">pt.size =</span> <span class="fl">0.5</span>) <span class="sc">+</span> <span class="fu">NoLegend</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="gene-gene-and-cell-cell-correlation" class="level2" data-number="14">
+<h2 data-number="14" class="anchored" data-anchor-id="gene-gene-and-cell-cell-correlation"><span class="header-section-number">14</span> Gene-Gene and Cell-Cell Correlation</h2>
+<p>Calculate correlations for network analysis.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb159"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb159-1"><a href="#cb159-1" aria-hidden="true" tabindex="-1"></a>M_gg <span class="ot">&lt;-</span> <span class="fu">cor</span>(<span class="fu">t</span>(<span class="fu">as.data.frame</span>(pbmc.data[top10<span class="sc">$</span>gene,])))</span>
+<span id="cb159-2"><a href="#cb159-2" aria-hidden="true" tabindex="-1"></a>ComplexHeatmap<span class="sc">::</span><span class="fu">Heatmap</span>(M_gg, <span class="at">column_names_gp =</span> grid<span class="sc">::</span><span class="fu">gpar</span>(<span class="at">fontsize =</span> <span class="dv">6</span>),</span>
+<span id="cb159-3"><a href="#cb159-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">row_names_gp =</span> grid<span class="sc">::</span><span class="fu">gpar</span>(<span class="at">fontsize =</span> <span class="dv">6</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb160"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb160-1"><a href="#cb160-1" aria-hidden="true" tabindex="-1"></a>M_cc <span class="ot">&lt;-</span> <span class="fu">cor</span>(<span class="fu">as.data.frame</span>(pbmc.data[top10<span class="sc">$</span>gene, <span class="dv">1</span><span class="sc">:</span><span class="dv">400</span>]))</span>
+<span id="cb160-2"><a href="#cb160-2" aria-hidden="true" tabindex="-1"></a>ComplexHeatmap<span class="sc">::</span><span class="fu">Heatmap</span>(M_cc, <span class="at">column_names_gp =</span> grid<span class="sc">::</span><span class="fu">gpar</span>(<span class="at">fontsize =</span> <span class="dv">6</span>),</span>
+<span id="cb160-3"><a href="#cb160-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">row_names_gp =</span> grid<span class="sc">::</span><span class="fu">gpar</span>(<span class="at">fontsize =</span> <span class="dv">6</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="single_cell_sequencing_files/figure-html/unnamed-chunk-21-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="resources" class="level2" data-number="15">
+<h2 data-number="15" class="anchored" data-anchor-id="resources"><span class="header-section-number">15</span> Resources</h2>
+<ul>
+<li><a href="https://broadinstitute.github.io/2020_scWorkshop/index.html">Analysis of Single-Cell RNA-Seq Data</a></li>
+<li><a href="https://satijalab.org/seurat/">Seurat R Toolkit</a></li>
+<li><a href="https://scanpy.readthedocs.io/en/stable/">Scanpy – Single-Cell Analysis in Python</a></li>
+</ul>
+<!-- -->
+
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="sourceCode" id="cb161" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb161-1"><a href="#cb161-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb161-2"><a href="#cb161-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Single-Cell RNA-Seq Analysis"</span></span>
+<span id="cb161-3"><a href="#cb161-3" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> "Dimitrios Kyriakis and Alexander Skupin"</span></span>
+<span id="cb161-4"><a href="#cb161-4" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2025-10-21"</span></span>
+<span id="cb161-5"><a href="#cb161-5" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span><span class="co"> </span></span>
+<span id="cb161-6"><a href="#cb161-6" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
+<span id="cb161-7"><a href="#cb161-7" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
+<span id="cb161-8"><a href="#cb161-8" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-location: right</span></span>
+<span id="cb161-9"><a href="#cb161-9" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-title: "Table of Contents"</span></span>
+<span id="cb161-10"><a href="#cb161-10" aria-hidden="true" tabindex="-1"></a><span class="co">    code-fold: true</span></span>
+<span id="cb161-11"><a href="#cb161-11" aria-hidden="true" tabindex="-1"></a><span class="co">    code-tools: true</span></span>
+<span id="cb161-12"><a href="#cb161-12" aria-hidden="true" tabindex="-1"></a><span class="co">    theme: cosmo</span></span>
+<span id="cb161-13"><a href="#cb161-13" aria-hidden="true" tabindex="-1"></a><span class="co">    css: styles.css</span></span>
+<span id="cb161-14"><a href="#cb161-14" aria-hidden="true" tabindex="-1"></a><span class="co">    number-sections: true</span></span>
+<span id="cb161-15"><a href="#cb161-15" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb161-16"><a href="#cb161-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-17"><a href="#cb161-17" aria-hidden="true" tabindex="-1"></a><span class="fu">## Introduction</span></span>
+<span id="cb161-18"><a href="#cb161-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-19"><a href="#cb161-19" aria-hidden="true" tabindex="-1"></a>This Quarto document demonstrates single-cell RNA-seq analysis using R packages <span class="in">`SingleCellExperiment`</span>, <span class="in">`Seurat`</span>, and <span class="in">`scater`</span>. These tools are essential in bioinformatics for quality control (QC), normalization, dimensionality reduction, and clustering of single-cell transcriptomic data. We use the PBMC3k dataset to explore these methods.</span>
+<span id="cb161-20"><a href="#cb161-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-21"><a href="#cb161-21" aria-hidden="true" tabindex="-1"></a><span class="fu">## Loading Libraries and Data</span></span>
+<span id="cb161-22"><a href="#cb161-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-23"><a href="#cb161-23" aria-hidden="true" tabindex="-1"></a>Load required libraries and the PBMC3k dataset from 10X Genomics. Ensure the data is unzipped and placed in the correct directory.</span>
+<span id="cb161-24"><a href="#cb161-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-27"><a href="#cb161-27" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-28"><a href="#cb161-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Reset environment</span></span>
+<span id="cb161-29"><a href="#cb161-29" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list=</span><span class="fu">ls</span>())</span>
+<span id="cb161-30"><a href="#cb161-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-31"><a href="#cb161-31" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(SingleCellExperiment)</span>
+<span id="cb161-32"><a href="#cb161-32" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span>
+<span id="cb161-33"><a href="#cb161-33" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Seurat)</span>
+<span id="cb161-34"><a href="#cb161-34" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
+<span id="cb161-35"><a href="#cb161-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-36"><a href="#cb161-36" aria-hidden="true" tabindex="-1"></a><span class="co"># Download and unzip PBMC dataset from URL</span></span>
+<span id="cb161-37"><a href="#cb161-37" aria-hidden="true" tabindex="-1"></a>url <span class="ot">&lt;-</span> <span class="st">"https://s3-us-west-2.amazonaws.com/10x.files/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz"</span></span>
+<span id="cb161-38"><a href="#cb161-38" aria-hidden="true" tabindex="-1"></a>temp_file <span class="ot">&lt;-</span> <span class="fu">tempfile</span>(<span class="at">fileext =</span> <span class="st">".tar.gz"</span>)</span>
+<span id="cb161-39"><a href="#cb161-39" aria-hidden="true" tabindex="-1"></a><span class="fu">download.file</span>(url, temp_file, <span class="at">mode =</span> <span class="st">"wb"</span>)</span>
+<span id="cb161-40"><a href="#cb161-40" aria-hidden="true" tabindex="-1"></a>temp_dir <span class="ot">&lt;-</span> <span class="fu">tempdir</span>()</span>
+<span id="cb161-41"><a href="#cb161-41" aria-hidden="true" tabindex="-1"></a><span class="fu">untar</span>(temp_file, <span class="at">exdir =</span> temp_dir)</span>
+<span id="cb161-42"><a href="#cb161-42" aria-hidden="true" tabindex="-1"></a>pbmc.data <span class="ot">&lt;-</span> <span class="fu">Read10X</span>(<span class="at">data.dir =</span> <span class="fu">file.path</span>(temp_dir, <span class="st">"filtered_gene_bc_matrices/hg19"</span>))</span>
+<span id="cb161-43"><a href="#cb161-43" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-44"><a href="#cb161-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-45"><a href="#cb161-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-46"><a href="#cb161-46" aria-hidden="true" tabindex="-1"></a><span class="fu">## Initial Data Exploration</span></span>
+<span id="cb161-47"><a href="#cb161-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-48"><a href="#cb161-48" aria-hidden="true" tabindex="-1"></a>Examine the dataset dimensions and gene expression for specific genes in the first 30 cells.</span>
+<span id="cb161-49"><a href="#cb161-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-52"><a href="#cb161-52" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-53"><a href="#cb161-53" aria-hidden="true" tabindex="-1"></a><span class="fu">dim</span>(pbmc.data)  <span class="co"># dimensions of data frame</span></span>
+<span id="cb161-54"><a href="#cb161-54" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pbmc.data<span class="sc">@</span>Dimnames[[<span class="dv">1</span>]])  <span class="co"># gene names</span></span>
+<span id="cb161-55"><a href="#cb161-55" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pbmc.data<span class="sc">@</span>Dimnames[[<span class="dv">2</span>]])  <span class="co"># barcode names</span></span>
+<span id="cb161-56"><a href="#cb161-56" aria-hidden="true" tabindex="-1"></a>pbmc.data[<span class="fu">c</span>(<span class="st">"CD3D"</span>, <span class="st">"TCL1A"</span>, <span class="st">"MS4A1"</span>), <span class="dv">1</span><span class="sc">:</span><span class="dv">30</span>]</span>
+<span id="cb161-57"><a href="#cb161-57" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-58"><a href="#cb161-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-59"><a href="#cb161-59" aria-hidden="true" tabindex="-1"></a>Visualize gene expression distributions with histograms.</span>
+<span id="cb161-60"><a href="#cb161-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-63"><a href="#cb161-63" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-64"><a href="#cb161-64" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(pbmc.data[<span class="st">"CD3D"</span>,], <span class="at">breaks =</span> <span class="dv">50</span>)</span>
+<span id="cb161-65"><a href="#cb161-65" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(pbmc.data[<span class="dv">122</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">2230</span>])</span>
+<span id="cb161-66"><a href="#cb161-66" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-67"><a href="#cb161-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-68"><a href="#cb161-68" aria-hidden="true" tabindex="-1"></a><span class="fu">## Creating Seurat and SingleCellExperiment Objects</span></span>
+<span id="cb161-69"><a href="#cb161-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-70"><a href="#cb161-70" aria-hidden="true" tabindex="-1"></a>Initialize a Seurat object for analysis, filtering genes expressed in at least 3 cells and cells with at least 200 features.</span>
+<span id="cb161-71"><a href="#cb161-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-74"><a href="#cb161-74" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-75"><a href="#cb161-75" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(<span class="at">counts =</span> pbmc.data, <span class="at">project =</span> <span class="st">"pbmc3k"</span>, <span class="at">min.cells =</span> <span class="dv">3</span>, <span class="at">min.features =</span> <span class="dv">200</span>)</span>
+<span id="cb161-76"><a href="#cb161-76" aria-hidden="true" tabindex="-1"></a>pbmc.sce <span class="ot">&lt;-</span> <span class="fu">as.SingleCellExperiment</span>(pbmc)</span>
+<span id="cb161-77"><a href="#cb161-77" aria-hidden="true" tabindex="-1"></a>pbmc</span>
+<span id="cb161-78"><a href="#cb161-78" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-79"><a href="#cb161-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-80"><a href="#cb161-80" aria-hidden="true" tabindex="-1"></a><span class="fu">## Quality Control (QC)</span></span>
+<span id="cb161-81"><a href="#cb161-81" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-82"><a href="#cb161-82" aria-hidden="true" tabindex="-1"></a>Calculate mitochondrial gene percentage for QC, as high mitochondrial content may indicate stressed or damaged cells.</span>
+<span id="cb161-83"><a href="#cb161-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-86"><a href="#cb161-86" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-87"><a href="#cb161-87" aria-hidden="true" tabindex="-1"></a>pbmc[[<span class="st">"percent.mt"</span>]] <span class="ot">&lt;-</span> <span class="fu">PercentageFeatureSet</span>(pbmc, <span class="at">pattern =</span> <span class="st">"^MT-"</span>)</span>
+<span id="cb161-88"><a href="#cb161-88" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pbmc<span class="sc">@</span>meta.data, <span class="dv">5</span>)  <span class="co"># show QC metrics</span></span>
+<span id="cb161-89"><a href="#cb161-89" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(pbmc<span class="sc">@</span>meta.data<span class="sc">$</span>percent.mt, <span class="at">breaks =</span> <span class="dv">50</span>)</span>
+<span id="cb161-90"><a href="#cb161-90" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-91"><a href="#cb161-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-92"><a href="#cb161-92" aria-hidden="true" tabindex="-1"></a>Visualize QC metrics with violin plots and scatter plots.</span>
+<span id="cb161-93"><a href="#cb161-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-96"><a href="#cb161-96" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-97"><a href="#cb161-97" aria-hidden="true" tabindex="-1"></a>vlnpl1 <span class="ot">&lt;-</span> <span class="fu">VlnPlot</span>(pbmc, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"nFeature_RNA"</span>, <span class="st">"nCount_RNA"</span>, <span class="st">"percent.mt"</span>), <span class="at">ncol =</span> <span class="dv">3</span>)</span>
+<span id="cb161-98"><a href="#cb161-98" aria-hidden="true" tabindex="-1"></a>plot1 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(pbmc, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"percent.mt"</span>)</span>
+<span id="cb161-99"><a href="#cb161-99" aria-hidden="true" tabindex="-1"></a>plot2 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(pbmc, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"nFeature_RNA"</span>)</span>
+<span id="cb161-100"><a href="#cb161-100" aria-hidden="true" tabindex="-1"></a>plot3 <span class="ot">&lt;-</span> plot1 <span class="sc">+</span> plot2</span>
+<span id="cb161-101"><a href="#cb161-101" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-102"><a href="#cb161-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-103"><a href="#cb161-103" aria-hidden="true" tabindex="-1"></a>Filter cells based on feature counts (200–2500) and mitochondrial percentage (&lt;5%).</span>
+<span id="cb161-104"><a href="#cb161-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-107"><a href="#cb161-107" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-108"><a href="#cb161-108" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">subset</span>(pbmc, <span class="at">subset =</span> nFeature_RNA <span class="sc">&gt;</span> <span class="dv">200</span> <span class="sc">&amp;</span> nFeature_RNA <span class="sc">&lt;</span> <span class="dv">2500</span> <span class="sc">&amp;</span> percent.mt <span class="sc">&lt;</span> <span class="dv">5</span>)</span>
+<span id="cb161-109"><a href="#cb161-109" aria-hidden="true" tabindex="-1"></a>vlnpl2 <span class="ot">&lt;-</span> <span class="fu">VlnPlot</span>(pbmc, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"nFeature_RNA"</span>, <span class="st">"nCount_RNA"</span>, <span class="st">"percent.mt"</span>), <span class="at">ncol =</span> <span class="dv">3</span>)</span>
+<span id="cb161-110"><a href="#cb161-110" aria-hidden="true" tabindex="-1"></a>vlnpl1  <span class="co"># before QC</span></span>
+<span id="cb161-111"><a href="#cb161-111" aria-hidden="true" tabindex="-1"></a>vlnpl2  <span class="co"># after QC</span></span>
+<span id="cb161-112"><a href="#cb161-112" aria-hidden="true" tabindex="-1"></a>plot1 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(pbmc, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"percent.mt"</span>)</span>
+<span id="cb161-113"><a href="#cb161-113" aria-hidden="true" tabindex="-1"></a>plot2 <span class="ot">&lt;-</span> <span class="fu">FeatureScatter</span>(pbmc, <span class="at">feature1 =</span> <span class="st">"nCount_RNA"</span>, <span class="at">feature2 =</span> <span class="st">"nFeature_RNA"</span>)</span>
+<span id="cb161-114"><a href="#cb161-114" aria-hidden="true" tabindex="-1"></a>plot4 <span class="ot">&lt;-</span> plot1 <span class="sc">+</span> plot2</span>
+<span id="cb161-115"><a href="#cb161-115" aria-hidden="true" tabindex="-1"></a>plot3  <span class="co"># compare with before QC</span></span>
+<span id="cb161-116"><a href="#cb161-116" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-117"><a href="#cb161-117" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-118"><a href="#cb161-118" aria-hidden="true" tabindex="-1"></a><span class="fu">## Data Normalization</span></span>
+<span id="cb161-119"><a href="#cb161-119" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-120"><a href="#cb161-120" aria-hidden="true" tabindex="-1"></a>Normalize data using LogNormalize to account for sequencing depth.</span>
+<span id="cb161-121"><a href="#cb161-121" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-124"><a href="#cb161-124" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-125"><a href="#cb161-125" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">NormalizeData</span>(pbmc, <span class="at">normalization.method =</span> <span class="st">"LogNormalize"</span>, <span class="at">scale.factor =</span> <span class="dv">10000</span>)</span>
+<span id="cb161-126"><a href="#cb161-126" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-127"><a href="#cb161-127" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-128"><a href="#cb161-128" aria-hidden="true" tabindex="-1"></a><span class="fu">## Feature Selection</span></span>
+<span id="cb161-129"><a href="#cb161-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-130"><a href="#cb161-130" aria-hidden="true" tabindex="-1"></a>Identify the 2000 most variable genes for downstream analysis.</span>
+<span id="cb161-131"><a href="#cb161-131" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-134"><a href="#cb161-134" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-135"><a href="#cb161-135" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">FindVariableFeatures</span>(pbmc, <span class="at">selection.method =</span> <span class="st">"vst"</span>, <span class="at">nfeatures =</span> <span class="dv">2000</span>)</span>
+<span id="cb161-136"><a href="#cb161-136" aria-hidden="true" tabindex="-1"></a>top10 <span class="ot">&lt;-</span> <span class="fu">head</span>(<span class="fu">VariableFeatures</span>(pbmc), <span class="dv">10</span>)</span>
+<span id="cb161-137"><a href="#cb161-137" aria-hidden="true" tabindex="-1"></a>plot5 <span class="ot">&lt;-</span> <span class="fu">VariableFeaturePlot</span>(pbmc)</span>
+<span id="cb161-138"><a href="#cb161-138" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-139"><a href="#cb161-139" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-140"><a href="#cb161-140" aria-hidden="true" tabindex="-1"></a>Scale data for PCA, focusing on variable genes.</span>
+<span id="cb161-141"><a href="#cb161-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-144"><a href="#cb161-144" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-145"><a href="#cb161-145" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">ScaleData</span>(pbmc)</span>
+<span id="cb161-146"><a href="#cb161-146" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-147"><a href="#cb161-147" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-148"><a href="#cb161-148" aria-hidden="true" tabindex="-1"></a>Access metadata, counts, and specific genes.</span>
+<span id="cb161-149"><a href="#cb161-149" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-152"><a href="#cb161-152" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-153"><a href="#cb161-153" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">Features</span>(pbmc))  <span class="co"># gene names</span></span>
+<span id="cb161-154"><a href="#cb161-154" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">Cells</span>(pbmc))  <span class="co"># cell barcodes</span></span>
+<span id="cb161-155"><a href="#cb161-155" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(pbmc[[]])  <span class="co"># metadata</span></span>
+<span id="cb161-156"><a href="#cb161-156" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">GetAssayData</span>(pbmc, <span class="at">assay =</span> <span class="st">"RNA"</span>, <span class="at">slot =</span> <span class="st">"counts"</span>))  <span class="co"># count matrix</span></span>
+<span id="cb161-157"><a href="#cb161-157" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">FetchData</span>(pbmc, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"nFeature_RNA"</span>, <span class="st">"ISG15"</span>, <span class="st">"TNFRSF4"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>))</span>
+<span id="cb161-158"><a href="#cb161-158" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-159"><a href="#cb161-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-160"><a href="#cb161-160" aria-hidden="true" tabindex="-1"></a>Visualize gene expression.</span>
+<span id="cb161-161"><a href="#cb161-161" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-164"><a href="#cb161-164" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-165"><a href="#cb161-165" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">as.data.frame</span>(<span class="fu">FetchData</span>(pbmc, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"FTL"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>))[,])</span>
+<span id="cb161-166"><a href="#cb161-166" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">as.data.frame</span>(<span class="fu">FetchData</span>(pbmc, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"FTL"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>))[,],</span>
+<span id="cb161-167"><a href="#cb161-167" aria-hidden="true" tabindex="-1"></a>     <span class="fu">as.data.frame</span>(<span class="fu">FetchData</span>(pbmc, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"GAPDH"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>))[,])</span>
+<span id="cb161-168"><a href="#cb161-168" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(<span class="fu">as.data.frame</span>(<span class="fu">FetchData</span>(pbmc, <span class="at">vars =</span> <span class="fu">c</span>(<span class="st">"FTL"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>)))</span>
+<span id="cb161-169"><a href="#cb161-169" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-170"><a href="#cb161-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-171"><a href="#cb161-171" aria-hidden="true" tabindex="-1"></a><span class="fu">## Dimensionality Reduction</span></span>
+<span id="cb161-172"><a href="#cb161-172" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-173"><a href="#cb161-173" aria-hidden="true" tabindex="-1"></a>Perform PCA on scaled data to reduce dimensionality.</span>
+<span id="cb161-174"><a href="#cb161-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-177"><a href="#cb161-177" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-178"><a href="#cb161-178" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RunPCA</span>(pbmc, <span class="at">npcs =</span> <span class="dv">30</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb161-179"><a href="#cb161-179" aria-hidden="true" tabindex="-1"></a><span class="fu">ElbowPlot</span>(pbmc, <span class="at">ndims =</span> <span class="dv">30</span>)</span>
+<span id="cb161-180"><a href="#cb161-180" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(pbmc[[<span class="st">"pca"</span>]], <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">5</span>, <span class="at">nfeatures =</span> <span class="dv">5</span>)</span>
+<span id="cb161-181"><a href="#cb161-181" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca"</span>)</span>
+<span id="cb161-182"><a href="#cb161-182" aria-hidden="true" tabindex="-1"></a><span class="fu">VizDimLoadings</span>(pbmc, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, <span class="at">reduction =</span> <span class="st">"pca"</span>)</span>
+<span id="cb161-183"><a href="#cb161-183" aria-hidden="true" tabindex="-1"></a><span class="fu">DimHeatmap</span>(pbmc, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">15</span>, <span class="at">cells =</span> <span class="dv">500</span>, <span class="at">balanced =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb161-184"><a href="#cb161-184" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-185"><a href="#cb161-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-186"><a href="#cb161-186" aria-hidden="true" tabindex="-1"></a>Determine significant PCs using JackStraw.</span>
+<span id="cb161-187"><a href="#cb161-187" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-190"><a href="#cb161-190" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-191"><a href="#cb161-191" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">JackStraw</span>(pbmc, <span class="at">num.replicate =</span> <span class="dv">50</span>)</span>
+<span id="cb161-192"><a href="#cb161-192" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">ScoreJackStraw</span>(pbmc, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>)</span>
+<span id="cb161-193"><a href="#cb161-193" aria-hidden="true" tabindex="-1"></a><span class="fu">JackStrawPlot</span>(pbmc, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>)</span>
+<span id="cb161-194"><a href="#cb161-194" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-195"><a href="#cb161-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-196"><a href="#cb161-196" aria-hidden="true" tabindex="-1"></a><span class="fu">## Cell Cycle Scoring and Regression</span></span>
+<span id="cb161-197"><a href="#cb161-197" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-198"><a href="#cb161-198" aria-hidden="true" tabindex="-1"></a>Assign cell cycle phases and regress out cell cycle effects.</span>
+<span id="cb161-199"><a href="#cb161-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-202"><a href="#cb161-202" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-203"><a href="#cb161-203" aria-hidden="true" tabindex="-1"></a>s.genes <span class="ot">&lt;-</span> cc.genes<span class="sc">$</span>s.genes</span>
+<span id="cb161-204"><a href="#cb161-204" aria-hidden="true" tabindex="-1"></a>g2m.genes <span class="ot">&lt;-</span> cc.genes<span class="sc">$</span>g2m.genes</span>
+<span id="cb161-205"><a href="#cb161-205" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">CellCycleScoring</span>(pbmc, <span class="at">s.features =</span> s.genes, <span class="at">g2m.features =</span> g2m.genes, <span class="at">set.ident =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb161-206"><a href="#cb161-206" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">group.by =</span> <span class="st">"Phase"</span>)</span>
+<span id="cb161-207"><a href="#cb161-207" aria-hidden="true" tabindex="-1"></a>pbmc<span class="sc">$</span>CC.Difference <span class="ot">&lt;-</span> pbmc<span class="sc">$</span>S.Score <span class="sc">-</span> pbmc<span class="sc">$</span>G2M.Score</span>
+<span id="cb161-208"><a href="#cb161-208" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">ScaleData</span>(pbmc, <span class="at">vars.to.regress =</span> <span class="st">"CC.Difference"</span>, <span class="at">features =</span> <span class="fu">rownames</span>(pbmc))</span>
+<span id="cb161-209"><a href="#cb161-209" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RunPCA</span>(pbmc, <span class="at">features =</span> <span class="fu">VariableFeatures</span>(pbmc), <span class="at">reduction.name =</span> <span class="st">"pca_reg_ccs"</span>)</span>
+<span id="cb161-210"><a href="#cb161-210" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca_reg_ccs"</span>) <span class="sc">|</span> <span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca"</span>)</span>
+<span id="cb161-211"><a href="#cb161-211" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-212"><a href="#cb161-212" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-213"><a href="#cb161-213" aria-hidden="true" tabindex="-1"></a><span class="fu">## Clustering</span></span>
+<span id="cb161-214"><a href="#cb161-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-215"><a href="#cb161-215" aria-hidden="true" tabindex="-1"></a>Cluster cells using the Louvain algorithm on PCA results.</span>
+<span id="cb161-216"><a href="#cb161-216" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-219"><a href="#cb161-219" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-220"><a href="#cb161-220" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">FindNeighbors</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca"</span>, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb161-221"><a href="#cb161-221" aria-hidden="true" tabindex="-1"></a>  <span class="fu">FindClusters</span>(<span class="at">resolution =</span> <span class="fl">0.5</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb161-222"><a href="#cb161-222" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">group.by =</span> <span class="st">"seurat_clusters"</span>)</span>
+<span id="cb161-223"><a href="#cb161-223" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-224"><a href="#cb161-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-225"><a href="#cb161-225" aria-hidden="true" tabindex="-1"></a><span class="fu">## Non-Linear Dimensionality Reduction</span></span>
+<span id="cb161-226"><a href="#cb161-226" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-227"><a href="#cb161-227" aria-hidden="true" tabindex="-1"></a>Run UMAP to visualize clusters, noting the stochastic nature of UMAP.</span>
+<span id="cb161-228"><a href="#cb161-228" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-231"><a href="#cb161-231" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-232"><a href="#cb161-232" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RunUMAP</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca"</span>, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb161-233"><a href="#cb161-233" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">DimPlot</span>(pbmc, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">repel =</span> <span class="cn">TRUE</span>, <span class="at">reduction =</span> <span class="st">"pca"</span>)</span>
+<span id="cb161-234"><a href="#cb161-234" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> <span class="fu">DimPlot</span>(pbmc, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">repel =</span> <span class="cn">TRUE</span>, <span class="at">reduction =</span> <span class="st">"umap"</span>)</span>
+<span id="cb161-235"><a href="#cb161-235" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RunUMAP</span>(pbmc, <span class="at">reduction =</span> <span class="st">"pca"</span>, <span class="at">dims =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>, <span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">seed.use =</span> <span class="dv">1234</span>)</span>
+<span id="cb161-236"><a href="#cb161-236" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> <span class="fu">DimPlot</span>(pbmc, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">repel =</span> <span class="cn">TRUE</span>, <span class="at">reduction =</span> <span class="st">"umap"</span>)</span>
+<span id="cb161-237"><a href="#cb161-237" aria-hidden="true" tabindex="-1"></a>p1 <span class="sc">|</span> p2 <span class="sc">|</span> p3</span>
+<span id="cb161-238"><a href="#cb161-238" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-239"><a href="#cb161-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-240"><a href="#cb161-240" aria-hidden="true" tabindex="-1"></a><span class="fu">## Differential Expression Analysis</span></span>
+<span id="cb161-241"><a href="#cb161-241" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-242"><a href="#cb161-242" aria-hidden="true" tabindex="-1"></a>Identify markers for cluster 2 and all clusters.</span>
+<span id="cb161-243"><a href="#cb161-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-246"><a href="#cb161-246" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-247"><a href="#cb161-247" aria-hidden="true" tabindex="-1"></a>cluster2.markers <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(pbmc, <span class="at">ident.1 =</span> <span class="dv">2</span>, <span class="at">min.pct =</span> <span class="fl">0.25</span>, <span class="at">min.diff.pct =</span> <span class="fl">0.4</span>)</span>
+<span id="cb161-248"><a href="#cb161-248" aria-hidden="true" tabindex="-1"></a>cluster2.markers<span class="sc">$</span>Symbol <span class="ot">&lt;-</span> <span class="fu">rownames</span>(cluster2.markers)</span>
+<span id="cb161-249"><a href="#cb161-249" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cluster2.markers, <span class="at">n =</span> <span class="dv">5</span>)</span>
+<span id="cb161-250"><a href="#cb161-250" aria-hidden="true" tabindex="-1"></a><span class="fu">VlnPlot</span>(pbmc, <span class="at">features =</span> cluster2.markers<span class="sc">$</span>Symbol[<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>])</span>
+<span id="cb161-251"><a href="#cb161-251" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="ot">&lt;-</span> <span class="fu">FindAllMarkers</span>(pbmc, <span class="at">only.pos =</span> <span class="cn">TRUE</span>, <span class="at">min.pct =</span> <span class="fl">0.25</span>, <span class="at">logfc.threshold =</span> <span class="fl">0.25</span>)</span>
+<span id="cb161-252"><a href="#cb161-252" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="sc">%&gt;%</span></span>
+<span id="cb161-253"><a href="#cb161-253" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(cluster) <span class="sc">%&gt;%</span></span>
+<span id="cb161-254"><a href="#cb161-254" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(<span class="at">n =</span> <span class="dv">2</span>, <span class="at">order_by =</span> avg_log2FC)</span>
+<span id="cb161-255"><a href="#cb161-255" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-256"><a href="#cb161-256" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-257"><a href="#cb161-257" aria-hidden="true" tabindex="-1"></a>Visualize marker expression.</span>
+<span id="cb161-258"><a href="#cb161-258" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-261"><a href="#cb161-261" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-262"><a href="#cb161-262" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(pbmc, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"MS4A1"</span>, <span class="st">"GNLY"</span>, <span class="st">"CD3E"</span>, <span class="st">"CD14"</span>, <span class="st">"FCER1A"</span>, <span class="st">"FCGR3A"</span>, <span class="st">"LYZ"</span>, <span class="st">"PPBP"</span>, <span class="st">"CD8A"</span>))</span>
+<span id="cb161-263"><a href="#cb161-263" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="sc">%&gt;%</span></span>
+<span id="cb161-264"><a href="#cb161-264" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(cluster) <span class="sc">%&gt;%</span></span>
+<span id="cb161-265"><a href="#cb161-265" aria-hidden="true" tabindex="-1"></a>  <span class="fu">top_n</span>(<span class="at">n =</span> <span class="dv">10</span>, <span class="at">wt =</span> avg_log2FC) <span class="ot">-&gt;</span> top10</span>
+<span id="cb161-266"><a href="#cb161-266" aria-hidden="true" tabindex="-1"></a><span class="fu">DoHeatmap</span>(pbmc, <span class="at">features =</span> top10<span class="sc">$</span>gene) <span class="sc">+</span> <span class="fu">NoLegend</span>()</span>
+<span id="cb161-267"><a href="#cb161-267" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-268"><a href="#cb161-268" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-269"><a href="#cb161-269" aria-hidden="true" tabindex="-1"></a><span class="fu">## Cell Type Assignment</span></span>
+<span id="cb161-270"><a href="#cb161-270" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-271"><a href="#cb161-271" aria-hidden="true" tabindex="-1"></a>Assign cell types based on known markers.</span>
+<span id="cb161-272"><a href="#cb161-272" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-275"><a href="#cb161-275" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-276"><a href="#cb161-276" aria-hidden="true" tabindex="-1"></a>new.cluster.ids <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Naive CD4 T"</span>, <span class="st">"CD14+ Mono"</span>, <span class="st">"Memory CD4 T"</span>, <span class="st">"B"</span>, <span class="st">"CD8 T"</span>, <span class="st">"FCGR3A+ Mono"</span>,</span>
+<span id="cb161-277"><a href="#cb161-277" aria-hidden="true" tabindex="-1"></a>                     <span class="st">"NK"</span>, <span class="st">"DC"</span>, <span class="st">"Platelet"</span>)</span>
+<span id="cb161-278"><a href="#cb161-278" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(new.cluster.ids) <span class="ot">&lt;-</span> <span class="fu">levels</span>(pbmc)</span>
+<span id="cb161-279"><a href="#cb161-279" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RenameIdents</span>(pbmc, new.cluster.ids)</span>
+<span id="cb161-280"><a href="#cb161-280" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">pt.size =</span> <span class="fl">0.5</span>) <span class="sc">+</span> <span class="fu">NoLegend</span>()</span>
+<span id="cb161-281"><a href="#cb161-281" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-282"><a href="#cb161-282" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-283"><a href="#cb161-283" aria-hidden="true" tabindex="-1"></a><span class="fu">## Gene-Gene and Cell-Cell Correlation</span></span>
+<span id="cb161-284"><a href="#cb161-284" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-285"><a href="#cb161-285" aria-hidden="true" tabindex="-1"></a>Calculate correlations for network analysis.</span>
+<span id="cb161-286"><a href="#cb161-286" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-289"><a href="#cb161-289" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb161-290"><a href="#cb161-290" aria-hidden="true" tabindex="-1"></a>M_gg <span class="ot">&lt;-</span> <span class="fu">cor</span>(<span class="fu">t</span>(<span class="fu">as.data.frame</span>(pbmc.data[top10<span class="sc">$</span>gene,])))</span>
+<span id="cb161-291"><a href="#cb161-291" aria-hidden="true" tabindex="-1"></a>ComplexHeatmap<span class="sc">::</span><span class="fu">Heatmap</span>(M_gg, <span class="at">column_names_gp =</span> grid<span class="sc">::</span><span class="fu">gpar</span>(<span class="at">fontsize =</span> <span class="dv">6</span>),</span>
+<span id="cb161-292"><a href="#cb161-292" aria-hidden="true" tabindex="-1"></a>                        <span class="at">row_names_gp =</span> grid<span class="sc">::</span><span class="fu">gpar</span>(<span class="at">fontsize =</span> <span class="dv">6</span>))</span>
+<span id="cb161-293"><a href="#cb161-293" aria-hidden="true" tabindex="-1"></a>M_cc <span class="ot">&lt;-</span> <span class="fu">cor</span>(<span class="fu">as.data.frame</span>(pbmc.data[top10<span class="sc">$</span>gene, <span class="dv">1</span><span class="sc">:</span><span class="dv">400</span>]))</span>
+<span id="cb161-294"><a href="#cb161-294" aria-hidden="true" tabindex="-1"></a>ComplexHeatmap<span class="sc">::</span><span class="fu">Heatmap</span>(M_cc, <span class="at">column_names_gp =</span> grid<span class="sc">::</span><span class="fu">gpar</span>(<span class="at">fontsize =</span> <span class="dv">6</span>),</span>
+<span id="cb161-295"><a href="#cb161-295" aria-hidden="true" tabindex="-1"></a>                        <span class="at">row_names_gp =</span> grid<span class="sc">::</span><span class="fu">gpar</span>(<span class="at">fontsize =</span> <span class="dv">6</span>))</span>
+<span id="cb161-296"><a href="#cb161-296" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb161-297"><a href="#cb161-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-298"><a href="#cb161-298" aria-hidden="true" tabindex="-1"></a><span class="fu">## Resources</span></span>
+<span id="cb161-299"><a href="#cb161-299" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb161-300"><a href="#cb161-300" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="co">[</span><span class="ot">Analysis of Single-Cell RNA-Seq Data</span><span class="co">](https://broadinstitute.github.io/2020_scWorkshop/index.html)</span></span>
+<span id="cb161-301"><a href="#cb161-301" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="co">[</span><span class="ot">Seurat R Toolkit</span><span class="co">](https://satijalab.org/seurat/)</span></span>
+<span id="cb161-302"><a href="#cb161-302" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="co">[</span><span class="ot">Scanpy – Single-Cell Analysis in Python</span><span class="co">](https://scanpy.readthedocs.io/en/stable/)</span></span>
+</code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

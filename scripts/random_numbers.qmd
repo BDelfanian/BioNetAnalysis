@@ -2,7 +2,17 @@
 title: "Playing with Random Numbers"
 author: "Based on script by Alexander Skupin"
 date: "2025-10-21"
-format: html
+format: 
+  html:
+    toc: true
+    toc-location: left
+    toc-title: "Table of Contents"
+    code-fold: true
+    code-tools: true
+    theme: cosmo
+    css: styles.css
+    number-sections: true
+message: false
 ---
 
 ## Introduction

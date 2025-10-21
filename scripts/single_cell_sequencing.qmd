@@ -1,0 +1,261 @@
+---
+title: "Single-Cell RNA-Seq Analysis"
+author: "Dimitrios Kyriakis and Alexander Skupin"
+date: "2025-10-21"
+format: 
+  html:
+    toc: true
+    toc-location: left
+    toc-title: "Table of Contents"
+    code-fold: true
+    code-tools: true
+    theme: cosmo
+    css: styles.css
+    number-sections: true
+message: false
+---
+
+## Introduction
+
+This Quarto document demonstrates single-cell RNA-seq analysis using R packages `SingleCellExperiment`, `Seurat`, and `scater`. These tools are essential in bioinformatics for quality control (QC), normalization, dimensionality reduction, and clustering of single-cell transcriptomic data. We use the PBMC3k dataset to explore these methods.
+
+## Loading Libraries and Data
+
+Load required libraries and the PBMC3k dataset from 10X Genomics. Ensure the data is unzipped and placed in the correct directory.
+
+```{r}
+# Reset environment
+rm(list=ls())
+
+library(SingleCellExperiment)
+library(dplyr)
+library(Seurat)
+library(patchwork)
+
+# Download and unzip PBMC dataset from URL
+url <- "https://s3-us-west-2.amazonaws.com/10x.files/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz"
+temp_file <- tempfile(fileext = ".tar.gz")
+download.file(url, temp_file, mode = "wb")
+temp_dir <- tempdir()
+untar(temp_file, exdir = temp_dir)
+pbmc.data <- Read10X(data.dir = file.path(temp_dir, "filtered_gene_bc_matrices/hg19"))
+```
+
+
+## Initial Data Exploration
+
+Examine the dataset dimensions and gene expression for specific genes in the first 30 cells.
+
+```{r}
+dim(pbmc.data)  # dimensions of data frame
+head(pbmc.data@Dimnames[[1]])  # gene names
+head(pbmc.data@Dimnames[[2]])  # barcode names
+pbmc.data[c("CD3D", "TCL1A", "MS4A1"), 1:30]
+```
+
+Visualize gene expression distributions with histograms.
+
+```{r}
+hist(pbmc.data["CD3D",], breaks = 50)
+hist(pbmc.data[122, 1:2230])
+```
+
+## Creating Seurat and SingleCellExperiment Objects
+
+Initialize a Seurat object for analysis, filtering genes expressed in at least 3 cells and cells with at least 200 features.
+
+```{r}
+pbmc <- CreateSeuratObject(counts = pbmc.data, project = "pbmc3k", min.cells = 3, min.features = 200)
+pbmc.sce <- as.SingleCellExperiment(pbmc)
+pbmc
+```
+
+## Quality Control (QC)
+
+Calculate mitochondrial gene percentage for QC, as high mitochondrial content may indicate stressed or damaged cells.
+
+```{r}
+pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
+head(pbmc@meta.data, 5)  # show QC metrics
+hist(pbmc@meta.data$percent.mt, breaks = 50)
+```
+
+Visualize QC metrics with violin plots and scatter plots.
+
+```{r}
+vlnpl1 <- VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot3 <- plot1 + plot2
+```
+
+Filter cells based on feature counts (200–2500) and mitochondrial percentage (<5%).
+
+```{r}
+pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5)
+vlnpl2 <- VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+vlnpl1  # before QC
+vlnpl2  # after QC
+plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot4 <- plot1 + plot2
+plot3  # compare with before QC
+```
+
+## Data Normalization
+
+Normalize data using LogNormalize to account for sequencing depth.
+
+```{r}
+pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor = 10000)
+```
+
+## Feature Selection
+
+Identify the 2000 most variable genes for downstream analysis.
+
+```{r}
+pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+top10 <- head(VariableFeatures(pbmc), 10)
+plot5 <- VariableFeaturePlot(pbmc)
+```
+
+Scale data for PCA, focusing on variable genes.
+
+```{r}
+pbmc <- ScaleData(pbmc)
+```
+
+Access metadata, counts, and specific genes.
+
+```{r}
+head(Features(pbmc))  # gene names
+head(Cells(pbmc))  # cell barcodes
+head(pbmc[[]])  # metadata
+head(GetAssayData(pbmc, assay = "RNA", slot = "counts"))  # count matrix
+head(FetchData(pbmc, vars = c("nFeature_RNA", "ISG15", "TNFRSF4"), layer = "counts"))
+```
+
+Visualize gene expression.
+
+```{r}
+plot(as.data.frame(FetchData(pbmc, vars = c("FTL"), layer = "counts"))[,])
+plot(as.data.frame(FetchData(pbmc, vars = c("FTL"), layer = "counts"))[,],
+     as.data.frame(FetchData(pbmc, vars = c("GAPDH"), layer = "counts"))[,])
+summary(as.data.frame(FetchData(pbmc, vars = c("FTL"), layer = "counts")))
+```
+
+## Dimensionality Reduction
+
+Perform PCA on scaled data to reduce dimensionality.
+
+```{r}
+pbmc <- RunPCA(pbmc, npcs = 30, verbose = FALSE)
+ElbowPlot(pbmc, ndims = 30)
+print(pbmc[["pca"]], dims = 1:5, nfeatures = 5)
+DimPlot(pbmc, reduction = "pca")
+VizDimLoadings(pbmc, dims = 1:2, reduction = "pca")
+DimHeatmap(pbmc, dims = 1:15, cells = 500, balanced = TRUE)
+```
+
+Determine significant PCs using JackStraw.
+
+```{r}
+pbmc <- JackStraw(pbmc, num.replicate = 50)
+pbmc <- ScoreJackStraw(pbmc, dims = 1:20)
+JackStrawPlot(pbmc, dims = 1:10)
+```
+
+## Cell Cycle Scoring and Regression
+
+Assign cell cycle phases and regress out cell cycle effects.
+
+```{r}
+s.genes <- cc.genes$s.genes
+g2m.genes <- cc.genes$g2m.genes
+pbmc <- CellCycleScoring(pbmc, s.features = s.genes, g2m.features = g2m.genes, set.ident = TRUE)
+DimPlot(pbmc, group.by = "Phase")
+pbmc$CC.Difference <- pbmc$S.Score - pbmc$G2M.Score
+pbmc <- ScaleData(pbmc, vars.to.regress = "CC.Difference", features = rownames(pbmc))
+pbmc <- RunPCA(pbmc, features = VariableFeatures(pbmc), reduction.name = "pca_reg_ccs")
+DimPlot(pbmc, reduction = "pca_reg_ccs") | DimPlot(pbmc, reduction = "pca")
+```
+
+## Clustering
+
+Cluster cells using the Louvain algorithm on PCA results.
+
+```{r}
+pbmc <- FindNeighbors(pbmc, reduction = "pca", dims = 1:20, verbose = FALSE) %>%
+  FindClusters(resolution = 0.5, verbose = FALSE)
+DimPlot(pbmc, group.by = "seurat_clusters")
+```
+
+## Non-Linear Dimensionality Reduction
+
+Run UMAP to visualize clusters, noting the stochastic nature of UMAP.
+
+```{r}
+pbmc <- RunUMAP(pbmc, reduction = "pca", dims = 1:20, verbose = FALSE)
+p1 <- DimPlot(pbmc, label = TRUE, repel = TRUE, reduction = "pca")
+p2 <- DimPlot(pbmc, label = TRUE, repel = TRUE, reduction = "umap")
+pbmc <- RunUMAP(pbmc, reduction = "pca", dims = 1:20, verbose = FALSE, seed.use = 1234)
+p3 <- DimPlot(pbmc, label = TRUE, repel = TRUE, reduction = "umap")
+p1 | p2 | p3
+```
+
+## Differential Expression Analysis
+
+Identify markers for cluster 2 and all clusters.
+
+```{r}
+cluster2.markers <- FindMarkers(pbmc, ident.1 = 2, min.pct = 0.25, min.diff.pct = 0.4)
+cluster2.markers$Symbol <- rownames(cluster2.markers)
+head(cluster2.markers, n = 5)
+VlnPlot(pbmc, features = cluster2.markers$Symbol[1:2])
+pbmc.markers <- FindAllMarkers(pbmc, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+pbmc.markers %>%
+  group_by(cluster) %>%
+  slice_max(n = 2, order_by = avg_log2FC)
+```
+
+Visualize marker expression.
+
+```{r}
+FeaturePlot(pbmc, features = c("MS4A1", "GNLY", "CD3E", "CD14", "FCER1A", "FCGR3A", "LYZ", "PPBP", "CD8A"))
+pbmc.markers %>%
+  group_by(cluster) %>%
+  top_n(n = 10, wt = avg_log2FC) -> top10
+DoHeatmap(pbmc, features = top10$gene) + NoLegend()
+```
+
+## Cell Type Assignment
+
+Assign cell types based on known markers.
+
+```{r}
+new.cluster.ids <- c("Naive CD4 T", "CD14+ Mono", "Memory CD4 T", "B", "CD8 T", "FCGR3A+ Mono",
+                     "NK", "DC", "Platelet")
+names(new.cluster.ids) <- levels(pbmc)
+pbmc <- RenameIdents(pbmc, new.cluster.ids)
+DimPlot(pbmc, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
+```
+
+## Gene-Gene and Cell-Cell Correlation
+
+Calculate correlations for network analysis.
+
+```{r}
+M_gg <- cor(t(as.data.frame(pbmc.data[top10$gene,])))
+ComplexHeatmap::Heatmap(M_gg, column_names_gp = grid::gpar(fontsize = 6),
+                        row_names_gp = grid::gpar(fontsize = 6))
+M_cc <- cor(as.data.frame(pbmc.data[top10$gene, 1:400]))
+ComplexHeatmap::Heatmap(M_cc, column_names_gp = grid::gpar(fontsize = 6),
+                        row_names_gp = grid::gpar(fontsize = 6))
+```
+
+## Resources
+
+- [Analysis of Single-Cell RNA-Seq Data](https://broadinstitute.github.io/2020_scWorkshop/index.html)
+- [Seurat R Toolkit](https://satijalab.org/seurat/)
+- [Scanpy – Single-Cell Analysis in Python](https://scanpy.readthedocs.io/en/stable/)
