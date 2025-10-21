@@ -1,10 +1,12 @@
 ---
 title: "Single-Cell RNA-Seq Analysis"
 author: "Dimitrios Kyriakis and Alexander Skupin"
+affiliation: University of Luxembourg
 date: "2025-10-21"
 format: 
   html:
     toc: true
+    toc-depth: 3
     toc-location: left
     toc-title: "Table of Contents"
     code-fold: true
@@ -12,7 +14,16 @@ format:
     theme: cosmo
     css: styles.css
     number-sections: true
+engine: knitr
+filters:
+  - webr
+webr:
+  show-editor: true
+  show-startup-message: false
+  autorun: true
+number-sections: true
 message: false
+warning: false
 ---
 
 ## Introduction
