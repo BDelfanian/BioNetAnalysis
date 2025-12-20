@@ -1,6 +1,6 @@
 ---
 title: "Parkinson's Disease scRNA-seq Analysis"
-author: "C. AMeli and A. Skupin"
+author: "Behrouz Delfanian"
 affiliation: University of Luxembourg
 description: This work is based on original research conducted by C. Ameli and A. Skupin.
 date: "2025-12-01"
