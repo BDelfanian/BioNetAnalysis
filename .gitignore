@@ -2,6 +2,6 @@
 .Rhistory
 .RData
 .Ruserdata
-data/SeuratFinal.rds
+*.rds
 
 /.quarto/
