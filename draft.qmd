@@ -1,0 +1,198 @@
+---
+title: "Parkinson's Disease scRNA-seq Project"
+author: "C. AMeli and A. Skupin"
+affiliation: University of Luxembourg
+date: "2025-12-01"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    toc-title: "Table of Contents"
+    code-fold: true
+    code-tools: true
+    theme: cosmo
+    css: styles.css
+    number-sections: true
+engine: knitr
+filters:
+  - webr
+webr:
+  show-editor: true
+  show-startup-message: false
+  autorun: true
+number-sections: true
+message: false
+warning: false
+---
+
+# Introduction
+
+## Project Background
+- **Disease**:  
+Parkinson’s disease (PD) – A brain disease where **midbrain dopaminergic neurons** slowly die, causing movement problems.
+
+- **Key gene**:  
+**PINK1** – A gene that makes a mitochondrial kinase — it **detects damaged mitochondria** and calls Parkin to **recycle** them (mitophagy).  
+
+- **Effect of PINK1 loss**:  
+Damaged mitochondria accumulate → oxidative stress → neuronal death → one of the most common causes of early-onset autosomal-recessive PD
+
+## Experimental Setup
+- **Cell model**: Human induced pluripotent stem cells (iPSCs)  
+- **Lines** (isogenic = identical genetic background except PINK1):  
+  - **CTL** → wild-type (normal PINK1)  
+  - **PINK1-KO** (PINK1^NK1^) → homozygous PINK1 knockout (no PINK1 protein)  
+- **Differentiation**: Ventral midbrain protocol → midbrain dopaminergic neurons  
+- **Time points**: Day 0, 18, 25, 37, 57 post-induction  
+- **Dataset**: Single-cell RNA-seq, **25,655 high-quality cells** — we know gene activity in every single cell at every time point.
+
+## Key Terms
+| Term              | Meaning in this project                                                                 |
+|-------------------|------------------------------------------------------------------------------------------|
+| **Stem cell** | The initial iPSC that has not yet specialized and can be guided (differentiated) into midbrain dopaminergic neurons, either with normal PINK1 (control) or without PINK1 (knockout/mutant). |
+| **Differentiation** | The process in which a stem cell gradually matures into a specific cell type <br>(here: iPSC → midbrain dopaminergic neuron over 57 days) |
+| **Mutation**        | Permanent change in DNA <br>(here: complete deletion (knockout) of the PINK1 gene)           |
+| **Gene expression** | How much a gene is “turned on” in a single cell <br>(measured as mRNA counts in scRNA-seq)   |
+
+## Main Objectives of the Re-analysis
+1. Re-compute integration, dimensionality reduction, and clustering using an optimized workflow  
+2. Perform **time-point-specific** differential expression (PINK1-KO vs CTL) at each day  
+3. Visualize **expression dynamics** of **canonical midbrain dopaminergic markers** over time  
+4. Identify cell populations and infer **developmental trajectories** (pseudotime analysis)  
+5. Determine which biological processes and **pathways** are altered by loss of PINK1
+
+## Overall Purpose
+Create a detailed **transcriptomic roadmap** showing **when, in which cells, and how** PINK1 deficiency disrupts the normal development of human midbrain dopaminergic neurons – revealing candidate mechanisms of selective neuronal vulnerability in Parkinson’s disease.
+
+**We compare gene expression day-by-day during differentiation in normal vs PINK1-mutated cells to see where the recipe for making dopaminergic neurons goes wrong.**
+
+
+# Preliminary
+
+## Loading libraries
+
+
+| Library         | Brief Description in Bioinformatics Context                                      |
+|-----------------|-----------------------------------------------------------------------------------|
+| **Seurat**      | Main package for single-cell RNA-seq analysis:<br>**QC, normalization, scaling, PCA, clustering, UMAP/tSNE, differential expression, and visualization**. |
+| **viridis**     | Colorblind-friendly, perceptually uniform color palettes (viridis, magma, plasma, inferno, cividis, etc.) <br>Ideal for **FeaturePlots**, **UMAPs**, violin plots. |
+| **viridisLite** | Lightweight version of viridis (fewer dependencies) providing the same color scales <br>Often used to keep the environment lean. |
+| **slingshot**   | **Trajectory inference** / **pseudotime analysis** package. Constructs **lineages** and calculates pseudotime from reduced dimensions (typically UMAP/tSNE from Seurat). |
+
+**Typical workflow these libraries support**:  
+Seurat → <br>process & cluster scRNA-seq data → <br>visualize with viridis palettes → <br>**feed reduced dimensions to `slingshot` for pseudotime and lineage inference**.
+
+## Loading data
+
+`readRDS()`: Loads a single R object (e.g., a Seurat object)
+
+### Code walkthrough – loading and inspecting a Seurat object
+
+| Line                          | Brief Description                                                                                 |
+|-------------------------------|-------------------------------------------------------------------------------------|
+| `dim(S)`                                 | Returns dimensions of the default **assay matrix** → `[n_genes, n_cells]`. |
+| `head(colnames(S))` / `tail(colnames(S))` | Shows first/last **cell barcodes** (column names of the **count matrix**). |
+| `head(rownames(S))` / `tail(rownames(S))` | Shows first/last **gene names/IDs** (row names of the count matrix). |
+| `head(S[[]])`                            | Displays the first few rows of the **meta.data** slot <br>(**cell-level** metadata: cluster, nCount_RNA, percent.mt, etc.). |
+| `Assays(S)`                              | Lists all assays present in the object <br>(usually "RNA", sometimes "integrated", "SCT", etc.) and shows default assay. |
+
+These commands are **standard quick checks** after loading a Seurat object to confirm it loaded correctly and to remind yourself of its structure before downstream analysis (e.g., trajectory inference with `slingshot`).
+
+### Quick summary of the Seurat object `S`
+
+| Slot / Component              | Content & Meaning                                                                                 |
+|-------------------------------|-------------------------------------------------------------------------------------|
+| **Total cells**               | 25,655 cells                                                                        |
+| **Assays (3)**                |                                                                                     |
+| `RNA`                         | Raw + normalized counts                                           |
+| `integrated`                  | Integration result<br>This is the **active.assay** (used for PCA, UMAP, clustering) |
+| `RNA_imputed`                 | Probably **MAGIC** or **scImpute** imputed data (same dimensions as RNA)            |
+| **Default assay**             | `integrated` ← all downstream steps (`DimPlot`, `FindClusters`, `UMAP`) use this one |
+| **Reductions (2)**            | pca and umap already computed and stored                                            |
+| **Metadata columns **         |                                                                                   |
+| `orig.ident`                  | Original sample ID                       |
+| `Condition`                   | Still “WT”                        |
+| `Day`                         | Currently numeric (e.g., 37), later it will be converted to ordered factor         |
+| `ConditionDay`                | Combined label you create (e.g., “CTL 37”, “PINK1 57”)                              |
+| `nCount_RNA` / `nFeature_RNA` | Original UMI and gene counts per cell                                               |
+| `nCount_RNA_imputed` / `nFeature_RNA_imputed` | After imputation                                                    |
+| **active.ident**              | Currently set to factor with levels “ND”, “WT”  |
+
+This RDS is a fully processed, integrated Seurat object from a *PINK1-KO vs WT time-course experiment* (days 0, 18, 25, 37, 57).\
+
+It already contains:  
+
+- Went through QC, normalization, integration (likely **Harmony** or **CCA**)  
+- Has PCA + UMAP computed  
+- Contains an imputed assay (useful for trajectory smoothing)  
+
+### What is an Assay in Seurat?
+
+In a Seurat object (here: `S`), an **Assay** is a **self-contained data container** that stores:  
+
+- the **gene expression matrix** (raw counts, normalized data, and optionally scaled data)  
+- all processing steps and parameters applied to that matrix  
+- feature-level metadata (e.g., mitochondrial percentage, highly variable genes)
+
+| Assay name | What it contains | When it is created / typically used |
+|------------|--------------------------|-------------------------------------|
+| `RNA`      | Raw/filtered counts<br>Log-normalized data (`data` slot)<br>Scaled data (`scale.data`) | Default assay after `CreateSeuratObject()` and classic `NormalizeData()`/`ScaleData()` workflow |
+| `SCT`      | SCTransform-normalized & batch-corrected counts<br>Variance-stabilizing model<br>Separate `scale.data` per gene | Created by `SCTransform()` – current best practice (2023–2025) for most scRNA-seq projects |
+| `integrated` | Batch-corrected expression matrix after integration across samples/datasets | Created by `IntegrateData()` or `IntegrateLayers()` (Seurat v5) |
+
+
+### Total UMI count visualization
+
+*Does total UMI count (`nCount_RNA`) logically decrease over differentiation time?*
+
+**Short answer:** Yes\
+
+In the iPSC → midbrain dopaminergic neuron protocol (day 0 → day 57), a systematic **decrease in `nCount_RNA` over time is biologically expected and very common**.
+
+*Why this happens (clear biological + technical explanation)?*
+
+- **Cell-size reduction**\
+  iPSCs are large and highly transcriptionally active. Mature neurons are much smaller and transcriptionally quieter (3–10× drop in total UMI counts).\
+
+- **Loss of pluripotency genes**\
+  OCT4, NANOG, SOX2, LIN28 etc. are extremely highly expressed in iPSCs and almost completely shut off upon differentiation (These few genes alone can contribute thousands of UMIs per cell).\
+
+- **Switch to neuronal transcriptome**\
+  Mature midbrain dopaminergic neurons express a more restricted set of genes (TH, DAT, FOXA2, LMX1A …) at moderate levels, not the “blast” levels like pluripotent cells (Fewer total transcripts per cell).\
+  
+- **Longer differentiation → more cell death/apoptosis**\
+  Dying or stressed cells are often captured with very low library complexity and low UMI counts (Late timepoints get enriched for low-nCount cells).
+
+> Total UMI counts per cell (`nCount_RNA`) physiologically decrease during differentiation from highly transcriptionally active iPSCs to smaller, more specialised midbrain dopaminergic neurons (expected ~5–10-fold reduction from day 0 to day 57).
+
+### What does `DimHeatmap(S, dims = 1:9, cells = 1000, balanced = TRUE)` actually show?
+
+This single command is one of the most useful diagnostics when deciding **how many principal components (PCs) to use** for UMAP/clustering.
+
+| Part of the plot | What you are looking at |
+|------------------|--------------------------|
+| Columns          | PCs 1 to 9 (one column = one dimension) |
+| Top half of rows | 500 cells with the **highest** scores on that PC |
+| Bottom half of rows | 500 cells with the **lowest** scores on that PC (`balanced = TRUE`) |
+| Colour           | Relative expression of the top-driving genes for that PC |
+
+#### Interpretation rules
+
+| PC number | Typical pattern you should see | Decision |
+|-----------|-------------------------------|----------|
+| 1–4 or 1–6 | Clear gene patterns (e.g., pluripotency genes in early PCs, neuronal genes later) → strong biological signal | Keep these PCs |
+| From some point onward (often PC 6–10) | Heatmap becomes noisy, no clear gene block, or is dominated by mitochondrial/ribosomal genes or MALAT1 | **Stop here** – do not use these PCs |
+| Very late PCs | Stripes or checkerboard patterns → technical noise or doublets | Discard |
+
+#### How this helps your iPSC → midbrain dopaminergic neuron analysis
+
+- Confirms that early PCs capture real biology (e.g., PC1 = differentiation time, PC2 = PINK1-knockout effect, PC3 = progenitor vs neuron, etc.).
+- Protects you from over-clustering on technical noise.
+- Gives you an objective number to put in `dims = 1:X` for `FindNeighbors()` and `RunUMAP()`.
+
+#### One-sentence summary
+
+> `DimHeatmap` of the first nine PCs (1 000 cells, balanced = TRUE) reveals strong biological signal in PCs 1–6 (driven by pluripotency, progenitor, and dopaminergic neuron marker genes) and increasing noise from PC 7 onward, justifying the use of the first 6 dimensions for clustering and UMAP.
+
+Just run the plot, look where the clear blocks disappear, and pick that number as your final `dims` — this is the current gold-standard way (Seurat vignettes 2023–2025) to choose the number of PCs.

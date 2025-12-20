@@ -1,6 +1,6 @@
 ---
 title: "Single-Cell RNA-Seq Analysis"
-author: "Dimitrios Kyriakis and Alexander Skupin"
+author: "Behrouz Delfanian"
 affiliation: University of Luxembourg
 date: "2025-10-21"
 format: 
@@ -28,21 +28,23 @@ warning: false
 
 ## Introduction
 
-This Quarto document demonstrates single-cell RNA-seq analysis using R packages `SingleCellExperiment`, `Seurat`, and `scater`. These tools are essential in bioinformatics for quality control (QC), normalization, dimensionality reduction, and clustering of single-cell transcriptomic data. We use the PBMC3k dataset to explore these methods.
+This Quarto document demonstrates single-cell RNA-seq analysis using R packages `SingleCellExperiment`, `Seurat`, and `scater`. These tools are essential in bioinformatics for **quality control** (QC), **normalization**, **dimensionality reduction**, and **clustering** of single-cell transcriptomic data. We use the PBMC3k dataset to explore these methods.
 
 ## Loading Libraries and Data
 
-Load required libraries and the PBMC3k dataset from 10X Genomics. Ensure the data is unzipped and placed in the correct directory.
+Load required libraries and the **PBMC3k** dataset from 10X Genomics. Ensure the data is unzipped and placed in the correct directory.
 
 ```{r}
-# Reset environment
-rm(list=ls())
+#| label: loading packages
 
 library(SingleCellExperiment)
 library(dplyr)
 library(Seurat)
 library(patchwork)
+```
 
+```{r}
+#| label: loading data
 # Download and unzip PBMC dataset from URL
 url <- "https://s3-us-west-2.amazonaws.com/10x.files/samples/cell/pbmc3k/pbmc3k_filtered_gene_bc_matrices.tar.gz"
 temp_file <- tempfile(fileext = ".tar.gz")
@@ -51,7 +53,6 @@ temp_dir <- tempdir()
 untar(temp_file, exdir = temp_dir)
 pbmc.data <- Read10X(data.dir = file.path(temp_dir, "filtered_gene_bc_matrices/hg19"))
 ```
-
 
 ## Initial Data Exploration
 
@@ -79,11 +80,14 @@ Initialize a Seurat object for analysis, filtering genes expressed in at least 3
 pbmc <- CreateSeuratObject(counts = pbmc.data, project = "pbmc3k", min.cells = 3, min.features = 200)
 pbmc.sce <- as.SingleCellExperiment(pbmc)
 pbmc
+head(pbmc[[]])
 ```
 
 ## Quality Control (QC)
 
-Calculate mitochondrial gene percentage for QC, as high mitochondrial content may indicate stressed or damaged cells.
+Calculate **mitochondrial gene percentage** for QC, as high mitochondrial content may indicate stressed or damaged cells.  
+
+- Why this is the first step in QC?
 
 ```{r}
 pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
@@ -115,7 +119,7 @@ plot3  # compare with before QC
 
 ## Data Normalization
 
-Normalize data using LogNormalize to account for sequencing depth.
+Normalize data using `LogNormalize` to account for sequencing depth.
 
 ```{r}
 pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor = 10000)
@@ -128,6 +132,7 @@ Identify the 2000 most variable genes for downstream analysis.
 ```{r}
 pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
 top10 <- head(VariableFeatures(pbmc), 10)
+hist(pbmc.data["FTL",], breaks = 50)
 plot5 <- VariableFeaturePlot(pbmc)
 ```
 

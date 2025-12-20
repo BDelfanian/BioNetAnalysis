@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.23">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="C. AMeli and A. Skupin">
+<meta name="dcterms.date" content="2025-12-01">
+
+<title>Parkinson’s Disease scRNA-seq Analysis</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Draft_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Draft_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Draft_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Draft_files/libs/quarto-html/popper.min.js"></script>
+<script src="Draft_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Draft_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Draft_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Draft_files/libs/quarto-html/quarto-syntax-highlighting-226bd0f977fa82dfae4534cac220d79a.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Draft_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Draft_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Draft_files/libs/bootstrap/bootstrap-4d5cdba1e59023d104418e560b599aaf.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article toc-left">
+<div id="quarto-sidebar-toc-left" class="sidebar toc-left">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of Contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction"><span class="header-section-number">1</span> Introduction</a>
+  <ul class="collapse">
+  <li><a href="#project-background" id="toc-project-background" class="nav-link" data-scroll-target="#project-background"><span class="header-section-number">1.1</span> Project Background</a></li>
+  <li><a href="#experimental-setup" id="toc-experimental-setup" class="nav-link" data-scroll-target="#experimental-setup"><span class="header-section-number">1.2</span> Experimental Setup</a></li>
+  <li><a href="#key-terms" id="toc-key-terms" class="nav-link" data-scroll-target="#key-terms"><span class="header-section-number">1.3</span> Key Terms</a></li>
+  <li><a href="#main-objectives-of-the-re-analysis" id="toc-main-objectives-of-the-re-analysis" class="nav-link" data-scroll-target="#main-objectives-of-the-re-analysis"><span class="header-section-number">1.4</span> Main Objectives of the Re-analysis</a></li>
+  <li><a href="#overall-purpose" id="toc-overall-purpose" class="nav-link" data-scroll-target="#overall-purpose"><span class="header-section-number">1.5</span> Overall Purpose</a></li>
+  <li><a href="#main-questions" id="toc-main-questions" class="nav-link" data-scroll-target="#main-questions"><span class="header-section-number">1.6</span> Main Questions</a></li>
+  <li><a href="#typical-outcome" id="toc-typical-outcome" class="nav-link" data-scroll-target="#typical-outcome"><span class="header-section-number">1.7</span> Typical Outcome</a></li>
+  <li><a href="#canonical-dopaminergic-neurons" id="toc-canonical-dopaminergic-neurons" class="nav-link" data-scroll-target="#canonical-dopaminergic-neurons"><span class="header-section-number">1.8</span> Canonical Dopaminergic Neurons</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Parkinson’s Disease scRNA-seq Analysis</h1><button type="button" class="btn code-tools-button" id="quarto-code-tools-source"><i class="bi"></i> Code</button></div></div>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>C. AMeli and A. Skupin </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">December 1, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="introduction" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Introduction</h1>
+<section id="project-background" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="project-background"><span class="header-section-number">1.1</span> Project Background</h2>
+<ul>
+<li><p><strong>Disease</strong>:<br>
+Parkinson’s disease (PD) – A brain disease where <strong>midbrain dopaminergic neurons</strong> slowly die, causing movement problems.</p></li>
+<li><p><strong>Key gene</strong>:<br>
+<strong>PINK1</strong> – A gene that makes a mitochondrial kinase — it <strong>detects damaged mitochondria</strong> and calls Parkin to <strong>recycle</strong> them (mitophagy).</p></li>
+<li><p><strong>Effect of PINK1 loss</strong>:<br>
+Damaged mitochondria accumulate → oxidative stress → neuronal death → one of the most common causes of early-onset autosomal-recessive PD</p></li>
+</ul>
+</section>
+<section id="experimental-setup" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="experimental-setup"><span class="header-section-number">1.2</span> Experimental Setup</h2>
+<ul>
+<li><strong>Cell model</strong>: Human induced pluripotent stem cells (iPSCs)<br>
+</li>
+<li><strong>Lines</strong> (isogenic = identical genetic background except PINK1):
+<ul>
+<li><strong>CTL</strong> → wild-type (normal PINK1)<br>
+</li>
+<li><strong>PINK1-KO</strong> (PINK1<sup>NK1</sup>) → homozygous PINK1 knockout (no PINK1 protein)<br>
+</li>
+</ul></li>
+<li><strong>Differentiation</strong>: Ventral midbrain protocol → midbrain dopaminergic neurons<br>
+</li>
+<li><strong>Time points</strong>: Day 0, 18, 25, 37, 57 post-induction<br>
+</li>
+<li><strong>Dataset</strong>: Single-cell RNA-seq, <strong>25,655 high-quality cells</strong> — we know gene activity in every single cell at every time point.</li>
+</ul>
+</section>
+<section id="key-terms" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="key-terms"><span class="header-section-number">1.3</span> Key Terms</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 17%">
+<col style="width: 82%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Term</th>
+<th>Meaning in this project</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Stem cell</strong></td>
+<td>The initial iPSC that has not yet specialized and can be guided (differentiated) into midbrain dopaminergic neurons, either with normal PINK1 (control) or without PINK1 (knockout/mutant).</td>
+</tr>
+<tr class="even">
+<td><strong>Differentiation</strong></td>
+<td>The process in which a stem cell gradually matures into a specific cell type <br>(here: iPSC → midbrain dopaminergic neuron over 57 days)</td>
+</tr>
+<tr class="odd">
+<td><strong>Mutation</strong></td>
+<td>Permanent change in DNA <br>(here: complete deletion (knockout) of the PINK1 gene)</td>
+</tr>
+<tr class="even">
+<td><strong>Gene expression</strong></td>
+<td>How much a gene is “turned on” in a single cell <br>(measured as <strong>mRNA</strong> counts in scRNA-seq)</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="main-objectives-of-the-re-analysis" class="level2" data-number="1.4">
+<h2 data-number="1.4" class="anchored" data-anchor-id="main-objectives-of-the-re-analysis"><span class="header-section-number">1.4</span> Main Objectives of the Re-analysis</h2>
+<ol type="1">
+<li>Re-compute integration, dimensionality reduction, and clustering using an optimized workflow<br>
+</li>
+<li>Perform <strong>time-point-specific</strong> differential expression (PINK1-KO vs CTL) at each day<br>
+</li>
+<li>Visualize <strong>expression dynamics</strong> of <strong>canonical midbrain dopaminergic markers</strong> over time<br>
+</li>
+<li>Identify cell populations and infer <strong>developmental trajectories</strong> (pseudotime analysis)<br>
+</li>
+<li>Determine which biological processes and <strong>pathways</strong> are altered by loss of PINK1</li>
+</ol>
+</section>
+<section id="overall-purpose" class="level2" data-number="1.5">
+<h2 data-number="1.5" class="anchored" data-anchor-id="overall-purpose"><span class="header-section-number">1.5</span> Overall Purpose</h2>
+<p>Create a detailed <strong>transcriptomic roadmap</strong> showing <strong>when, in which cells, and how</strong> PINK1 deficiency disrupts the normal development of human midbrain dopaminergic neurons – <strong>revealing candidate mechanisms of selective neuronal vulnerability</strong> in Parkinson’s disease.</p>
+<p><strong>We compare gene expression day-by-day during differentiation in normal vs PINK1-mutated cells to see where the recipe for making dopaminergic neurons goes wrong.</strong></p>
+</section>
+<section id="main-questions" class="level2" data-number="1.6">
+<h2 data-number="1.6" class="anchored" data-anchor-id="main-questions"><span class="header-section-number">1.6</span> Main Questions</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 41%">
+<col style="width: 29%">
+<col style="width: 29%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>Steps</th>
+<th>Tools</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>What cell populations emerge during differentiation?</td>
+<td>1. Load and preprocess scRNA-seq data (filter, normalize). <br>2. Integrate datasets across time points/lines. <br>3. Perform dimensionality reduction (PCA, UMAP). <br>4. Cluster cells and annotate based on markers.</td>
+<td>Seurat (R package for integration, reduction, clustering); <br>ggplot2 for visualization.</td>
+</tr>
+<tr class="even">
+<td>How does gene expression differ between PINK1-KO and CTL at each time point?</td>
+<td>1. Subset data by time point. <br>2. Identify differentially expressed genes (DEGs) using statistical tests. <br>3. Filter DEGs by logFC and adjusted p-value. <br>4. Visualize with heatmaps/volcano plots.</td>
+<td>Seurat (FindMarkers function); <br>DESeq2 or Wilcoxon test in Seurat; <br>EnhancedVolcano (R package) for plots.</td>
+</tr>
+<tr class="odd">
+<td>How do canonical midbrain dopaminergic markers change over time?</td>
+<td>1. Select marker genes (e.g., TH, FOXA2, LMX1A). <br>2. Extract expression data across time points/lines. <br>3. Plot average expression or violin plots. <br>4. Compare dynamics between CTL and KO.</td>
+<td>Seurat (FeaturePlot, VlnPlot); <br>ggplot2 for line plots; <br>dplyr for data manipulation.</td>
+</tr>
+<tr class="even">
+<td>What are the developmental trajectories of cells?</td>
+<td>1. Integrate data and order cells in pseudotime. <br>2. Infer trajectory using graph-based methods. <br>3. Branch analysis if needed. <br>4. Visualize pseudotime on UMAP.</td>
+<td>Monocle3 or Slingshot (R packages for pseudotime); integrated with Seurat objects.</td>
+</tr>
+<tr class="odd">
+<td>Which biological processes/pathways are altered by PINK1 loss?</td>
+<td>1. Perform DE analysis per time point/cluster. <br>2. Enrich DEGs for GO terms/pathways. <br>3. Identify overrepresented categories. <br>4. Visualize enrichment results.</td>
+<td>clusterProfiler or gprofiler2 (R packages for GO/KEGG enrichment); <br>ggplot2 for dotplots/barplots.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="typical-outcome" class="level2" data-number="1.7">
+<h2 data-number="1.7" class="anchored" data-anchor-id="typical-outcome"><span class="header-section-number">1.7</span> Typical Outcome</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 21%">
+<col style="width: 50%">
+<col style="width: 28%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Question</th>
+<th>Typical Visual Result</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>What cell populations emerge during differentiation?</td>
+<td>UMAP plot with colored clusters</td>
+<td>2D projection of cells (UMAP/t-SNE), <br>clusters colored by annotated cell types (e.g., progenitors, dopaminergic neurons); <br>often faceted by time point or condition (CTL vs KO).</td>
+</tr>
+<tr class="even">
+<td>How does gene expression differ between PINK1-KO and CTL at each time point?</td>
+<td>Volcano plot or heatmap</td>
+<td>Volcano: genes plotted by log fold change (x-axis) vs -log10(p-value) (y-axis), significant DEGs highlighted. <br>Heatmap: top DEGs rows, cells/samples columns.</td>
+</tr>
+<tr class="odd">
+<td>How do canonical midbrain dopaminergic markers change over time?</td>
+<td>Violin plot or line plot</td>
+<td>Violin: expression distribution per time point/condition. <br>Line: average expression trajectory over differentiation days, comparing CTL and KO.</td>
+</tr>
+<tr class="even">
+<td>What are the developmental trajectories of cells?</td>
+<td>Trajectory on UMAP with pseudotime coloring</td>
+<td>UMAP colored by pseudotime gradient or branches; arrows indicate directionality (from Monocle3 or Slingshot).</td>
+</tr>
+<tr class="odd">
+<td>Which biological processes/pathways are altered by PINK1 loss?</td>
+<td>Dotplot or barplot of enrichment</td>
+<td>Dots/bars for GO/KEGG terms, size by gene count, color by adjusted p-value; top enriched categories shown.</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="canonical-dopaminergic-neurons" class="level2" data-number="1.8">
+<h2 data-number="1.8" class="anchored" data-anchor-id="canonical-dopaminergic-neurons"><span class="header-section-number">1.8</span> Canonical Dopaminergic Neurons</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 8%">
+<col style="width: 10%">
+<col style="width: 9%">
+<col style="width: 32%">
+<col style="width: 38%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Category</th>
+<th>Gene Symbol</th>
+<th>Full Name</th>
+<th>Role in Midbrain Dopaminergic Neurons</th>
+<th>Typical Expression Pattern in Differentiation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Progenitor/Early</td>
+<td>FOXA2</td>
+<td>Forkhead box A2</td>
+<td>Floor plate and midbrain specifier; essential for DA neuron development.</td>
+<td>High from early stages (Day 0–18), sustained in progenitors and mature mDA neurons.</td>
+</tr>
+<tr class="even">
+<td>Progenitor/Early</td>
+<td>LMX1A</td>
+<td>LIM homeobox transcription factor 1 alpha</td>
+<td>Key inducer of midbrain DA fate.</td>
+<td>Peaks early (Day 18–25), remains high in mDA lineage.</td>
+</tr>
+<tr class="odd">
+<td>Progenitor/Early</td>
+<td>OTX2</td>
+<td>Orthodenticle homeobox 2</td>
+<td>Establishes midbrain regional identity.</td>
+<td>High in early-mid stages, gradually decreases in mature neurons.</td>
+</tr>
+<tr class="even">
+<td>Progenitor/Early</td>
+<td>EN1</td>
+<td>Engrailed 1</td>
+<td>Maintains midbrain/hindbrain boundary.</td>
+<td>Expressed early, lower in late mature neurons.</td>
+</tr>
+<tr class="odd">
+<td>Mature Neuron</td>
+<td>TH</td>
+<td>Tyrosine hydroxylase</td>
+<td>Rate-limiting enzyme in dopamine synthesis; hallmark DA marker.</td>
+<td>Low early, strongly upregulated in mature mDA (Day 37–57).</td>
+</tr>
+<tr class="even">
+<td>Mature Neuron</td>
+<td>NR4A2 (NURR1)</td>
+<td>Nuclear receptor subfamily 4 group A member 2</td>
+<td>Transcription factor required for DA phenotype maintenance.</td>
+<td>Increases mid-stage (Day 25+), high in mature mDA.</td>
+</tr>
+<tr class="odd">
+<td>Mature Neuron</td>
+<td>PITX3</td>
+<td>Paired-like homeodomain 3</td>
+<td>Specific to substantia nigra DA neurons; survival factor.</td>
+<td>Late marker, strongly expressed in mature mDA (Day 37–57).</td>
+</tr>
+<tr class="even">
+<td>Mature Neuron</td>
+<td>SLC6A3 (DAT)</td>
+<td>Solute carrier family 6 member 3 (Dopamine transporter)</td>
+<td>Reuptake of dopamine; functional DA marker.</td>
+<td>Latest marker, high only in fully mature dopaminergic neurons (Day 57+).</td>
+</tr>
+</tbody>
+</table>
+<pre><code>VlnPlot(seurat_obj, features = c("FOXA2", "LMX1A", "TH", "NR4A2", "PITX3"), 
+        group.by = "time_point", split.by = "condition")</code></pre>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 83%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Library</th>
+<th>Brief Description in Bioinformatics Context</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Seurat</strong></td>
+<td>Main package for single-cell RNA-seq analysis:<br><strong>QC, normalization, scaling, PCA, clustering, UMAP/tSNE, differential expression, and visualization</strong>.</td>
+</tr>
+<tr class="even">
+<td><strong>DESeq2</strong></td>
+<td><strong>Bulk RNA-seq</strong> differential expression tool; also used for scRNA-seq DE when counts are aggregated (e.g., pseudobulk by cluster/time point).<br>Negative binomial model, better for low-replicate designs.</td>
+</tr>
+<tr class="odd">
+<td><strong>Monocle3</strong></td>
+<td>Advanced <strong>trajectory inference</strong> and <strong>pseudotime analysis</strong> for scRNA-seq.<br>Learns developmental manifolds, supports <strong>branching trajectories</strong>; integrates directly with Seurat objects.</td>
+</tr>
+<tr class="even">
+<td><strong>clusterProfiler</strong></td>
+<td>Functional enrichment analysis package.<br>Performs GO, KEGG, Reactome enrichment on gene lists (e.g., DEGs); excellent visualization (dotplot, enrichment map).</td>
+</tr>
+<tr class="odd">
+<td><strong>viridis</strong></td>
+<td>Colorblind-friendly, perceptually uniform color palettes (viridis, magma, plasma, inferno, cividis, etc.)<br>Ideal for <strong>FeaturePlots</strong>, <strong>UMAPs</strong>, violin plots.</td>
+</tr>
+<tr class="even">
+<td><strong>viridisLite</strong></td>
+<td>Lightweight version of viridis (fewer dependencies) providing the same color scales<br>Often used to keep the environment lean.</td>
+</tr>
+<tr class="odd">
+<td><strong>slingshot</strong></td>
+<td><strong>Trajectory inference</strong> / <strong>pseudotime analysis</strong> package.<br>Constructs lineages and calculates pseudotime from reduced dimensions (typically UMAP/tSNE from Seurat).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Typical workflow these libraries support</strong>:</p>
+<p>Seurat → process &amp; cluster scRNA-seq data →<br>
+DESeq2 (pseudobulk) or Seurat’s FindMarkers for differential expression →<br>
+clusterProfiler for GO/KEGG enrichment on DEGs →<br>
+Monocle3 or slingshot for pseudotime/trajectory inference →<br>
+visualize with viridis palettes.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><p>The Seurat object <code>S</code> contains <strong>all cells</strong> from <strong>all time points</strong> (Day 0, 18, 25, 37, 57) and <strong>both conditions</strong> (CTL and PINK1-KO) in a single integrated analysis.</p></li>
+<li><p>Each cell is represented by <strong>exactly one point</strong> on the UMAP, regardless of its time point or condition.</p></li>
+<li><p>The UMAP is a 2D embedding of the entire dataset (25,655 points total).</p></li>
+</ul>
+</div>
+</div>
+<blockquote class="blockquote">
+<p><em>Does total UMI count (<code>nCount_RNA</code>) logically decrease over differentiation time?</em></p>
+</blockquote>
+<!-- -->
+
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+    const viewSource = window.document.getElementById('quarto-view-source') ||
+                       window.document.getElementById('quarto-code-tools-source');
+    if (viewSource) {
+      const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+      viewSource.addEventListener("click", function(e) {
+        if (sourceUrl) {
+          // rstudio viewer pane
+          if (/\bcapabilities=\b/.test(window.location)) {
+            window.open(sourceUrl);
+          } else {
+            window.location.href = sourceUrl;
+          }
+        } else {
+          const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+          modal.show();
+        }
+        return false;
+      });
+    }
+    function toggleCodeHandler(show) {
+      return function(e) {
+        const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+        for (let i=0; i<detailsSrc.length; i++) {
+          const details = detailsSrc[i].parentElement;
+          if (show) {
+            details.open = true;
+          } else {
+            details.removeAttribute("open");
+          }
+        }
+        const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+        const fromCls = show ? "hidden" : "unhidden";
+        const toCls = show ? "unhidden" : "hidden";
+        for (let i=0; i<cellCodeDivs.length; i++) {
+          const codeDiv = cellCodeDivs[i];
+          if (codeDiv.classList.contains(fromCls)) {
+            codeDiv.classList.remove(fromCls);
+            codeDiv.classList.add(toCls);
+          } 
+        }
+        return false;
+      }
+    }
+    const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+    if (hideAllCode) {
+      hideAllCode.addEventListener("click", toggleCodeHandler(false));
+    }
+    const showAllCode = window.document.getElementById("quarto-show-all-code");
+    if (showAllCode) {
+      showAllCode.addEventListener("click", toggleCodeHandler(true));
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="sourceCode" id="cb2" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Parkinson's Disease scRNA-seq Analysis"</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> "C. AMeli and A. Skupin"</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="an">affiliation:</span><span class="co"> University of Luxembourg</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2025-12-01"</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span><span class="co"> </span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-depth: 3</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-location: left</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">    toc-title: "Table of Contents"</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">    code-fold: true</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">    code-tools: true</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">    theme: cosmo</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">    css: styles.css</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">    number-sections: true</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="an">engine:</span><span class="co"> knitr</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="an">filters:</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">  - webr</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="an">webr:</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co">  show-editor: true</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co">  show-startup-message: false</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co">  autorun: true</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="an">number-sections:</span><span class="co"> true</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="an">message:</span><span class="co"> false</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="an">warning:</span><span class="co"> false</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="fu"># Introduction</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="fu">## Project Background</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Disease**:  </span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>Parkinson’s disease (PD) – A brain disease where **midbrain dopaminergic neurons** slowly die, causing movement problems.</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Key gene**:  </span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>**PINK1** – A gene that makes a mitochondrial kinase — it **detects damaged mitochondria** and calls Parkin to **recycle** them (mitophagy).  </span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Effect of PINK1 loss**:  </span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>Damaged mitochondria accumulate → oxidative stress → neuronal death → one of the most common causes of early-onset autosomal-recessive PD</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a><span class="fu">## Experimental Setup</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Cell model**: Human induced pluripotent stem cells (iPSCs)  </span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Lines** (isogenic = identical genetic background except PINK1):  </span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>**CTL** → wild-type (normal PINK1)  </span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a><span class="ss">  - </span>**PINK1-KO** (PINK1^NK1^) → homozygous PINK1 knockout (no PINK1 protein)  </span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Differentiation**: Ventral midbrain protocol → midbrain dopaminergic neurons  </span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Time points**: Day 0, 18, 25, 37, 57 post-induction  </span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>**Dataset**: Single-cell RNA-seq, **25,655 high-quality cells** — we know gene activity in every single cell at every time point.</span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a><span class="fu">## Key Terms</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Term              <span class="pp">|</span> Meaning in this project                                                                 <span class="pp">|</span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a><span class="pp">|-------------------|------------------------------------------------------------------------------------------|</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Stem cell** <span class="pp">|</span> The initial iPSC that has not yet specialized and can be guided (differentiated) into midbrain dopaminergic neurons, either with normal PINK1 (control) or without PINK1 (knockout/mutant). <span class="pp">|</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Differentiation** <span class="pp">|</span> The process in which a stem cell gradually matures into a specific cell type <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>(here: iPSC → midbrain dopaminergic neuron over 57 days) <span class="pp">|</span></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Mutation**        <span class="pp">|</span> Permanent change in DNA <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>(here: complete deletion (knockout) of the PINK1 gene)           <span class="pp">|</span></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Gene expression** | How much a gene is “turned on” in a single cell &lt;br&gt;(measured as **mRNA** counts in scRNA-seq)   <span class="pp">|</span></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a><span class="fu">## Main Objectives of the Re-analysis</span></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>Re-compute integration, dimensionality reduction, and clustering using an optimized workflow  </span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>Perform **time-point-specific** differential expression (PINK1-KO vs CTL) at each day  </span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>Visualize **expression dynamics** of **canonical midbrain dopaminergic markers** over time  </span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>Identify cell populations and infer **developmental trajectories** (pseudotime analysis)  </span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>Determine which biological processes and **pathways** are altered by loss of PINK1</span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a><span class="fu">## Overall Purpose</span></span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>Create a detailed **transcriptomic roadmap** showing **when, in which cells, and how** PINK1 deficiency disrupts the normal development of human midbrain dopaminergic neurons – **revealing candidate mechanisms of selective neuronal vulnerability** in Parkinson’s disease.</span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>**We compare gene expression day-by-day during differentiation in normal vs PINK1-mutated cells to see where the recipe for making dopaminergic neurons goes wrong.**</span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a><span class="fu">## Main Questions</span></span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Question <span class="pp">|</span> Steps <span class="pp">|</span> Tools <span class="pp">|</span></span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a><span class="pp">|----------|-------|-------|</span></span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> What cell populations emerge during differentiation? <span class="pp">|</span> 1. Load and preprocess scRNA-seq data (filter, normalize). <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>2. Integrate datasets across time points/lines. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>3. Perform dimensionality reduction (PCA, UMAP). <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>4. Cluster cells and annotate based on markers. <span class="pp">|</span> Seurat (R package for integration, reduction, clustering); <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>ggplot2 for visualization. <span class="pp">|</span></span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> How does gene expression differ between PINK1-KO and CTL at each time point? <span class="pp">|</span> 1. Subset data by time point. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>2. Identify differentially expressed genes (DEGs) using statistical tests. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>3. Filter DEGs by logFC and adjusted p-value. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>4. Visualize with heatmaps/volcano plots. <span class="pp">|</span> Seurat (FindMarkers function); <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>DESeq2 or Wilcoxon test in Seurat; <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>EnhancedVolcano (R package) for plots. <span class="pp">|</span></span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> How do canonical midbrain dopaminergic markers change over time? <span class="pp">|</span> 1. Select marker genes (e.g., TH, FOXA2, LMX1A). <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>2. Extract expression data across time points/lines. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>3. Plot average expression or violin plots. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>4. Compare dynamics between CTL and KO. <span class="pp">|</span> Seurat (FeaturePlot, VlnPlot); <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>ggplot2 for line plots; <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>dplyr for data manipulation. <span class="pp">|</span></span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> What are the developmental trajectories of cells? <span class="pp">|</span> 1. Integrate data and order cells in pseudotime. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>2. Infer trajectory using graph-based methods. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>3. Branch analysis if needed. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>4. Visualize pseudotime on UMAP. <span class="pp">|</span> Monocle3 or Slingshot (R packages for pseudotime); integrated with Seurat objects. <span class="pp">|</span></span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Which biological processes/pathways are altered by PINK1 loss? <span class="pp">|</span> 1. Perform DE analysis per time point/cluster. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>2. Enrich DEGs for GO terms/pathways. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>3. Identify overrepresented categories. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>4. Visualize enrichment results. <span class="pp">|</span> clusterProfiler or gprofiler2 (R packages for GO/KEGG enrichment); <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>ggplot2 for dotplots/barplots. <span class="pp">|</span></span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a><span class="fu">## Typical Outcome</span></span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Question <span class="pp">|</span> Typical Visual Result <span class="pp">|</span> Description <span class="pp">|</span></span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a><span class="pp">|----------|-----------------------|-------------|</span></span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> What cell populations emerge during differentiation? <span class="pp">|</span> UMAP plot with colored clusters <span class="pp">|</span> 2D projection of cells (UMAP/t-SNE), <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>clusters colored by annotated cell types (e.g., progenitors, dopaminergic neurons); <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>often faceted by time point or condition (CTL vs KO). <span class="pp">|</span></span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> How does gene expression differ between PINK1-KO and CTL at each time point? <span class="pp">|</span> Volcano plot or heatmap <span class="pp">|</span> Volcano: genes plotted by log fold change (x-axis) vs -log10(p-value) (y-axis), significant DEGs highlighted. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>Heatmap: top DEGs rows, cells/samples columns. <span class="pp">|</span></span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> How do canonical midbrain dopaminergic markers change over time? <span class="pp">|</span> Violin plot or line plot <span class="pp">|</span> Violin: expression distribution per time point/condition. <span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>Line: average expression trajectory over differentiation days, comparing CTL and KO. <span class="pp">|</span></span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> What are the developmental trajectories of cells? <span class="pp">|</span> Trajectory on UMAP with pseudotime coloring <span class="pp">|</span> UMAP colored by pseudotime gradient or branches; arrows indicate directionality (from Monocle3 or Slingshot). <span class="pp">|</span></span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Which biological processes/pathways are altered by PINK1 loss? <span class="pp">|</span> Dotplot or barplot of enrichment <span class="pp">|</span> Dots/bars for GO/KEGG terms, size by gene count, color by adjusted p-value; top enriched categories shown. <span class="pp">|</span></span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a><span class="fu">## Canonical Dopaminergic Neurons</span></span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Category <span class="pp">|</span> Gene Symbol <span class="pp">|</span> Full Name <span class="pp">|</span> Role in Midbrain Dopaminergic Neurons <span class="pp">|</span> Typical Expression Pattern in Differentiation <span class="pp">|</span></span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a><span class="pp">|----------|-------------|-----------|---------------------------------------|----------------------------------------------|</span></span>
+<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Progenitor/Early <span class="pp">|</span> FOXA2 <span class="pp">|</span> Forkhead box A2 <span class="pp">|</span> Floor plate and midbrain specifier; essential for DA neuron development. <span class="pp">|</span> High from early stages (Day 0–18), sustained in progenitors and mature mDA neurons. <span class="pp">|</span></span>
+<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Progenitor/Early <span class="pp">|</span> LMX1A <span class="pp">|</span> LIM homeobox transcription factor 1 alpha <span class="pp">|</span> Key inducer of midbrain DA fate. <span class="pp">|</span> Peaks early (Day 18–25), remains high in mDA lineage. <span class="pp">|</span></span>
+<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Progenitor/Early <span class="pp">|</span> OTX2 <span class="pp">|</span> Orthodenticle homeobox 2 <span class="pp">|</span> Establishes midbrain regional identity. <span class="pp">|</span> High in early-mid stages, gradually decreases in mature neurons. <span class="pp">|</span></span>
+<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Progenitor/Early <span class="pp">|</span> EN1 <span class="pp">|</span> Engrailed 1 <span class="pp">|</span> Maintains midbrain/hindbrain boundary. <span class="pp">|</span> Expressed early, lower in late mature neurons. <span class="pp">|</span></span>
+<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Mature Neuron <span class="pp">|</span> TH <span class="pp">|</span> Tyrosine hydroxylase <span class="pp">|</span> Rate-limiting enzyme in dopamine synthesis; hallmark DA marker. <span class="pp">|</span> Low early, strongly upregulated in mature mDA (Day 37–57). <span class="pp">|</span></span>
+<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Mature Neuron <span class="pp">|</span> NR4A2 (NURR1) <span class="pp">|</span> Nuclear receptor subfamily 4 group A member 2 <span class="pp">|</span> Transcription factor required for DA phenotype maintenance. <span class="pp">|</span> Increases mid-stage (Day 25+), high in mature mDA. <span class="pp">|</span></span>
+<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Mature Neuron <span class="pp">|</span> PITX3 <span class="pp">|</span> Paired-like homeodomain 3 <span class="pp">|</span> Specific to substantia nigra DA neurons; survival factor. <span class="pp">|</span> Late marker, strongly expressed in mature mDA (Day 37–57). <span class="pp">|</span></span>
+<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Mature Neuron <span class="pp">|</span> SLC6A3 (DAT) <span class="pp">|</span> Solute carrier family 6 member 3 (Dopamine transporter) <span class="pp">|</span> Reuptake of dopamine; functional DA marker. <span class="pp">|</span> Latest marker, high only in fully mature dopaminergic neurons (Day 57+). <span class="pp">|</span></span>
+<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a><span class="in">```{}</span></span>
+<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a><span class="in">VlnPlot(seurat_obj, features = c("FOXA2", "LMX1A", "TH", "NR4A2", "PITX3"), </span></span>
+<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a><span class="in">        group.by = "time_point", split.by = "condition")</span></span>
+<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> Library        <span class="pp">|</span> Brief Description in Bioinformatics Context <span class="pp">|</span></span>
+<span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a><span class="pp">|----------------|-----------------------------------------------------------------------------------|</span></span>
+<span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Seurat**     | Main package for single-cell RNA-seq analysis:&lt;br&gt;**QC, normalization, scaling, PCA, clustering, UMAP/tSNE, differential expression, and visualization**. <span class="pp">|</span></span>
+<span id="cb2-114"><a href="#cb2-114" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **DESeq2**     | **Bulk RNA-seq** differential expression tool; also used for scRNA-seq DE when counts are aggregated (e.g., pseudobulk by cluster/time point).<span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>Negative binomial model, better for low-replicate designs. <span class="pp">|</span></span>
+<span id="cb2-115"><a href="#cb2-115" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **Monocle3**   | Advanced **trajectory inference** and **pseudotime analysis** for scRNA-seq.&lt;br&gt;Learns developmental manifolds, supports **branching trajectories**; integrates directly with Seurat objects. <span class="pp">|</span></span>
+<span id="cb2-116"><a href="#cb2-116" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **clusterProfiler** <span class="pp">|</span> Functional enrichment analysis package.<span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>Performs GO, KEGG, Reactome enrichment on gene lists (e.g., DEGs); excellent visualization (dotplot, enrichment map). <span class="pp">|</span></span>
+<span id="cb2-117"><a href="#cb2-117" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **viridis**    | Colorblind-friendly, perceptually uniform color palettes (viridis, magma, plasma, inferno, cividis, etc.)&lt;br&gt;Ideal for **FeaturePlots**, **UMAPs**, violin plots. <span class="pp">|</span></span>
+<span id="cb2-118"><a href="#cb2-118" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **viridisLite**<span class="pp">|</span> Lightweight version of viridis (fewer dependencies) providing the same color scales<span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>Often used to keep the environment lean. <span class="pp">|</span></span>
+<span id="cb2-119"><a href="#cb2-119" aria-hidden="true" tabindex="-1"></a><span class="pp">|</span> **slingshot**  | **Trajectory inference** / **pseudotime analysis** package.<span class="dt">&lt;</span><span class="kw">br</span><span class="dt">&gt;</span>Constructs lineages and calculates pseudotime from reduced dimensions (typically UMAP/tSNE from Seurat). <span class="pp">|</span></span>
+<span id="cb2-120"><a href="#cb2-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-121"><a href="#cb2-121" aria-hidden="true" tabindex="-1"></a>**Typical workflow these libraries support**:  </span>
+<span id="cb2-122"><a href="#cb2-122" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-123"><a href="#cb2-123" aria-hidden="true" tabindex="-1"></a>Seurat → process &amp; cluster scRNA-seq data →  </span>
+<span id="cb2-124"><a href="#cb2-124" aria-hidden="true" tabindex="-1"></a>DESeq2 (pseudobulk) or Seurat's FindMarkers for differential expression →  </span>
+<span id="cb2-125"><a href="#cb2-125" aria-hidden="true" tabindex="-1"></a>clusterProfiler for GO/KEGG enrichment on DEGs →  </span>
+<span id="cb2-126"><a href="#cb2-126" aria-hidden="true" tabindex="-1"></a>Monocle3 or slingshot for pseudotime/trajectory inference →  </span>
+<span id="cb2-127"><a href="#cb2-127" aria-hidden="true" tabindex="-1"></a>visualize with viridis palettes.</span>
+<span id="cb2-128"><a href="#cb2-128" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-129"><a href="#cb2-129" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-130"><a href="#cb2-130" aria-hidden="true" tabindex="-1"></a>::: {.callout-tip}</span>
+<span id="cb2-131"><a href="#cb2-131" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The Seurat object <span class="in">`S`</span> contains **all cells** from **all time points** (Day 0, 18, 25, 37, 57) and **both conditions** (CTL and PINK1-KO) in a single integrated analysis.  </span>
+<span id="cb2-132"><a href="#cb2-132" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-133"><a href="#cb2-133" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Each cell is represented by **exactly one point** on the UMAP, regardless of its time point or condition.  </span>
+<span id="cb2-134"><a href="#cb2-134" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-135"><a href="#cb2-135" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>The UMAP is a 2D embedding of the entire dataset (25,655 points total).</span>
+<span id="cb2-136"><a href="#cb2-136" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb2-137"><a href="#cb2-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-138"><a href="#cb2-138" aria-hidden="true" tabindex="-1"></a><span class="at">&gt; *Does total UMI count (`nCount_RNA`) logically decrease over differentiation time?*</span></span></code><button title="Copy to Clipboard" class="code-copy-button" data-in-quarto-modal=""><i class="bi"></i></button></pre></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

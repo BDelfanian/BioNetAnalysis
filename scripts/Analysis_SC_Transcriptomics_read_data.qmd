@@ -1,0 +1,53 @@
+---
+title: "Single Cell Transcriptomics"
+author: "Behrouz Delfanian"
+affiliation: University of Luxembourg
+date: "2025-11-15"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    toc-title: "Table of Contents"
+    code-fold: true
+    code-tools: true
+    theme: cosmo
+    css: styles.css
+    number-sections: true
+engine: knitr
+filters:
+  - webr
+webr:
+  show-editor: true
+  show-startup-message: false
+  autorun: true
+number-sections: true
+message: false
+warning: false
+---
+
+Script to perform SC analysis for dropseq data of mDA differentiation of PINK1 vs CTRL cells.
+
+```{r}
+#| label: importing libraries
+library(Seurat)
+library(dplyr)
+library(tidyverse)
+library(viridisLite)
+library(viridis)
+library(ggplot2)
+library(openxlsx)
+library(slingshot)
+```
+
+
+```{r}
+#| label: parameters
+
+input_file = "./data/SeuratFinal.rds"
+output_folder = "./results/"
+
+#to export things later
+writeExcel = TRUE
+```
+

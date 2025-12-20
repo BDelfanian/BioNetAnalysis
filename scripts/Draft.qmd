@@ -1,0 +1,139 @@
+---
+title: "Parkinson's Disease scRNA-seq Analysis"
+author: "C. AMeli and A. Skupin"
+affiliation: University of Luxembourg
+date: "2025-12-01"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    toc-title: "Table of Contents"
+    code-fold: true
+    code-tools: true
+    theme: cosmo
+    css: styles.css
+    number-sections: true
+engine: knitr
+filters:
+  - webr
+webr:
+  show-editor: true
+  show-startup-message: false
+  autorun: true
+number-sections: true
+message: false
+warning: false
+---
+
+# Introduction
+
+## Project Background
+- **Disease**:  
+Parkinson’s disease (PD) – A brain disease where **midbrain dopaminergic neurons** slowly die, causing movement problems.
+
+- **Key gene**:  
+**PINK1** – A gene that makes a mitochondrial kinase — it **detects damaged mitochondria** and calls Parkin to **recycle** them (mitophagy).  
+
+- **Effect of PINK1 loss**:  
+Damaged mitochondria accumulate → oxidative stress → neuronal death → one of the most common causes of early-onset autosomal-recessive PD
+
+## Experimental Setup
+- **Cell model**: Human induced pluripotent stem cells (iPSCs)  
+- **Lines** (isogenic = identical genetic background except PINK1):  
+  - **CTL** → wild-type (normal PINK1)  
+  - **PINK1-KO** (PINK1^NK1^) → homozygous PINK1 knockout (no PINK1 protein)  
+- **Differentiation**: Ventral midbrain protocol → midbrain dopaminergic neurons  
+- **Time points**: Day 0, 18, 25, 37, 57 post-induction  
+- **Dataset**: Single-cell RNA-seq, **25,655 high-quality cells** — we know gene activity in every single cell at every time point.
+
+## Key Terms
+| Term              | Meaning in this project                                                                 |
+|-------------------|------------------------------------------------------------------------------------------|
+| **Stem cell** | The initial iPSC that has not yet specialized and can be guided (differentiated) into midbrain dopaminergic neurons, either with normal PINK1 (control) or without PINK1 (knockout/mutant). |
+| **Differentiation** | The process in which a stem cell gradually matures into a specific cell type <br>(here: iPSC → midbrain dopaminergic neuron over 57 days) |
+| **Mutation**        | Permanent change in DNA <br>(here: complete deletion (knockout) of the PINK1 gene)           |
+| **Gene expression** | How much a gene is “turned on” in a single cell <br>(measured as **mRNA** counts in scRNA-seq)   |
+
+## Main Objectives of the Re-analysis
+1. Re-compute integration, dimensionality reduction, and clustering using an optimized workflow  
+2. Perform **time-point-specific** differential expression (PINK1-KO vs CTL) at each day  
+3. Visualize **expression dynamics** of **canonical midbrain dopaminergic markers** over time  
+4. Identify cell populations and infer **developmental trajectories** (pseudotime analysis)  
+5. Determine which biological processes and **pathways** are altered by loss of PINK1
+
+## Overall Purpose
+Create a detailed **transcriptomic roadmap** showing **when, in which cells, and how** PINK1 deficiency disrupts the normal development of human midbrain dopaminergic neurons – **revealing candidate mechanisms of selective neuronal vulnerability** in Parkinson’s disease.
+
+**We compare gene expression day-by-day during differentiation in normal vs PINK1-mutated cells to see where the recipe for making dopaminergic neurons goes wrong.**
+
+## Main Questions
+
+| Question | Steps | Tools |
+|----------|-------|-------|
+| What cell populations emerge during differentiation? | 1. Load and preprocess scRNA-seq data (filter, normalize). <br>2. Integrate datasets across time points/lines. <br>3. Perform dimensionality reduction (PCA, UMAP). <br>4. Cluster cells and annotate based on markers. | Seurat (R package for integration, reduction, clustering); <br>ggplot2 for visualization. |
+| How does gene expression differ between PINK1-KO and CTL at each time point? | 1. Subset data by time point. <br>2. Identify differentially expressed genes (DEGs) using statistical tests. <br>3. Filter DEGs by logFC and adjusted p-value. <br>4. Visualize with heatmaps/volcano plots. | Seurat (FindMarkers function); <br>DESeq2 or Wilcoxon test in Seurat; <br>EnhancedVolcano (R package) for plots. |
+| How do canonical midbrain dopaminergic markers change over time? | 1. Select marker genes (e.g., TH, FOXA2, LMX1A). <br>2. Extract expression data across time points/lines. <br>3. Plot average expression or violin plots. <br>4. Compare dynamics between CTL and KO. | Seurat (FeaturePlot, VlnPlot); <br>ggplot2 for line plots; <br>dplyr for data manipulation. |
+| What are the developmental trajectories of cells? | 1. Integrate data and order cells in pseudotime. <br>2. Infer trajectory using graph-based methods. <br>3. Branch analysis if needed. <br>4. Visualize pseudotime on UMAP. | Monocle3 or Slingshot (R packages for pseudotime); integrated with Seurat objects. |
+| Which biological processes/pathways are altered by PINK1 loss? | 1. Perform DE analysis per time point/cluster. <br>2. Enrich DEGs for GO terms/pathways. <br>3. Identify overrepresented categories. <br>4. Visualize enrichment results. | clusterProfiler or gprofiler2 (R packages for GO/KEGG enrichment); <br>ggplot2 for dotplots/barplots. |
+
+
+## Typical Outcome
+
+| Question | Typical Visual Result | Description |
+|----------|-----------------------|-------------|
+| What cell populations emerge during differentiation? | UMAP plot with colored clusters | 2D projection of cells (UMAP/t-SNE), <br>clusters colored by annotated cell types (e.g., progenitors, dopaminergic neurons); <br>often faceted by time point or condition (CTL vs KO). |
+| How does gene expression differ between PINK1-KO and CTL at each time point? | Volcano plot or heatmap | Volcano: genes plotted by log fold change (x-axis) vs -log10(p-value) (y-axis), significant DEGs highlighted. <br>Heatmap: top DEGs rows, cells/samples columns. |
+| How do canonical midbrain dopaminergic markers change over time? | Violin plot or line plot | Violin: expression distribution per time point/condition. <br>Line: average expression trajectory over differentiation days, comparing CTL and KO. |
+| What are the developmental trajectories of cells? | Trajectory on UMAP with pseudotime coloring | UMAP colored by pseudotime gradient or branches; arrows indicate directionality (from Monocle3 or Slingshot). |
+| Which biological processes/pathways are altered by PINK1 loss? | Dotplot or barplot of enrichment | Dots/bars for GO/KEGG terms, size by gene count, color by adjusted p-value; top enriched categories shown. |
+
+
+## Canonical Dopaminergic Neurons
+
+| Category | Gene Symbol | Full Name | Role in Midbrain Dopaminergic Neurons | Typical Expression Pattern in Differentiation |
+|----------|-------------|-----------|---------------------------------------|----------------------------------------------|
+| Progenitor/Early | FOXA2 | Forkhead box A2 | Floor plate and midbrain specifier; essential for DA neuron development. | High from early stages (Day 0–18), sustained in progenitors and mature mDA neurons. |
+| Progenitor/Early | LMX1A | LIM homeobox transcription factor 1 alpha | Key inducer of midbrain DA fate. | Peaks early (Day 18–25), remains high in mDA lineage. |
+| Progenitor/Early | OTX2 | Orthodenticle homeobox 2 | Establishes midbrain regional identity. | High in early-mid stages, gradually decreases in mature neurons. |
+| Progenitor/Early | EN1 | Engrailed 1 | Maintains midbrain/hindbrain boundary. | Expressed early, lower in late mature neurons. |
+| Mature Neuron | TH | Tyrosine hydroxylase | Rate-limiting enzyme in dopamine synthesis; hallmark DA marker. | Low early, strongly upregulated in mature mDA (Day 37–57). |
+| Mature Neuron | NR4A2 (NURR1) | Nuclear receptor subfamily 4 group A member 2 | Transcription factor required for DA phenotype maintenance. | Increases mid-stage (Day 25+), high in mature mDA. |
+| Mature Neuron | PITX3 | Paired-like homeodomain 3 | Specific to substantia nigra DA neurons; survival factor. | Late marker, strongly expressed in mature mDA (Day 37–57). |
+| Mature Neuron | SLC6A3 (DAT) | Solute carrier family 6 member 3 (Dopamine transporter) | Reuptake of dopamine; functional DA marker. | Latest marker, high only in fully mature dopaminergic neurons (Day 57+). |
+
+```{}
+VlnPlot(seurat_obj, features = c("FOXA2", "LMX1A", "TH", "NR4A2", "PITX3"), 
+        group.by = "time_point", split.by = "condition")
+```
+
+
+| Library        | Brief Description in Bioinformatics Context |
+|----------------|-----------------------------------------------------------------------------------|
+| **Seurat**     | Main package for single-cell RNA-seq analysis:<br>**QC, normalization, scaling, PCA, clustering, UMAP/tSNE, differential expression, and visualization**. |
+| **DESeq2**     | **Bulk RNA-seq** differential expression tool; also used for scRNA-seq DE when counts are aggregated (e.g., pseudobulk by cluster/time point).<br>Negative binomial model, better for low-replicate designs. |
+| **Monocle3**   | Advanced **trajectory inference** and **pseudotime analysis** for scRNA-seq.<br>Learns developmental manifolds, supports **branching trajectories**; integrates directly with Seurat objects. |
+| **clusterProfiler** | Functional enrichment analysis package.<br>Performs GO, KEGG, Reactome enrichment on gene lists (e.g., DEGs); excellent visualization (dotplot, enrichment map). |
+| **viridis**    | Colorblind-friendly, perceptually uniform color palettes (viridis, magma, plasma, inferno, cividis, etc.)<br>Ideal for **FeaturePlots**, **UMAPs**, violin plots. |
+| **viridisLite**| Lightweight version of viridis (fewer dependencies) providing the same color scales<br>Often used to keep the environment lean. |
+| **slingshot**  | **Trajectory inference** / **pseudotime analysis** package.<br>Constructs lineages and calculates pseudotime from reduced dimensions (typically UMAP/tSNE from Seurat). |
+
+**Typical workflow these libraries support**:  
+
+Seurat → process & cluster scRNA-seq data →  
+DESeq2 (pseudobulk) or Seurat's FindMarkers for differential expression →  
+clusterProfiler for GO/KEGG enrichment on DEGs →  
+Monocle3 or slingshot for pseudotime/trajectory inference →  
+visualize with viridis palettes.
+
+
+::: {.callout-tip}
+- The Seurat object `S` contains **all cells** from **all time points** (Day 0, 18, 25, 37, 57) and **both conditions** (CTL and PINK1-KO) in a single integrated analysis.  
+
+- Each cell is represented by **exactly one point** on the UMAP, regardless of its time point or condition.  
+
+- The UMAP is a 2D embedding of the entire dataset (25,655 points total).
+:::
+
+> *Does total UMI count (`nCount_RNA`) logically decrease over differentiation time?*
+
